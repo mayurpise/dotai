@@ -1,51 +1,141 @@
 # Scrub: Code Review and Cleanup
 
-Review a target directory for reuse, quality, and efficiency. Fix any issues found.
+Review a target directory for reuse, quality, and efficiency, then **apply every actionable finding** within a defined safety envelope. Skipping is the exception, not the default.
 
 ## Phase 1: Identify Target
 
-The user must provide a target directory. Glob all source files under that directory recursively (e.g., `.py`, `.ts`, `.tsx`, `.rs`, `.go`, `.java` — whatever languages are present). Read each file to build full context before proceeding to Phase 2.
+The user must provide a target directory. Glob all source files under it recursively (e.g., `.py`, `.ts`, `.tsx`, `.rs`, `.go`, `.java` — whatever languages are present). Read each file to build full context before proceeding to Phase 2.
 
 If no directory is specified, ask the user which directory to review before proceeding.
 
 ## Phase 2: Launch Three Review Agents in Parallel
 
-Use the Agent tool to launch all three agents concurrently in a single message. Pass each agent the full list of files (paths + contents) from Phase 1 so it has complete context.
+Use the Agent tool to launch all three agents concurrently in a single message. Pass each agent the full list of files from Phase 1.
 
 ### Agent 1: Code Reuse Review
 
-For each change:
-
-1. **Search for existing utilities and helpers** that could replace newly written code. Look for similar patterns elsewhere in the codebase — common locations are utility directories, shared modules, and files adjacent to the changed ones.
+1. **Search for existing utilities and helpers** that could replace newly written code. Common locations: utility directories, shared modules, adjacent files.
 2. **Flag any new function that duplicates existing functionality.** Suggest the existing function to use instead.
-3. **Flag any inline logic that could use an existing utility** — hand-rolled string manipulation, manual path handling, custom environment checks, ad-hoc type guards, and similar patterns are common candidates.
+3. **Flag any inline logic that could use an existing utility** — hand-rolled string manipulation, manual path handling, custom environment checks, ad-hoc type guards, etc.
 
 ### Agent 2: Code Quality Review
 
-Review the same changes for hacky patterns:
-
-1. **Redundant state**: state that duplicates existing state, cached values that could be derived, observers/effects that could be direct calls
-2. **Parameter sprawl**: adding new parameters to a function instead of generalizing or restructuring existing ones
-3. **Copy-paste with slight variation**: near-duplicate code blocks that should be unified with a shared abstraction
-4. **Leaky abstractions**: exposing internal details that should be encapsulated, or breaking existing abstraction boundaries
-5. **Stringly-typed code**: using raw strings where constants, enums (string unions), or branded types already exist in the codebase
-6. **Unnecessary JSX nesting**: wrapper Boxes/elements that add no layout value — check if inner component props (flexShrink, alignItems, etc.) already provide the needed behavior
-7. **Unnecessary comments**: comments explaining WHAT the code does (well-named identifiers already do that), narrating the change, or referencing the task/caller — delete; keep only non-obvious WHY (hidden constraints, subtle invariants, workarounds)
+1. **Redundant state**: state duplicating existing state, cached values that could be derived, observers/effects that could be direct calls
+2. **Parameter sprawl**: adding new parameters to a function instead of generalizing or restructuring
+3. **Copy-paste with slight variation**: near-duplicate blocks that should be unified
+4. **Leaky abstractions**: exposing internal details that should be encapsulated
+5. **Stringly-typed code**: raw strings where constants/enums/branded types already exist
+6. **Unnecessary JSX nesting**: wrapper elements adding no layout value
+7. **Unnecessary comments**: comments explaining WHAT, narrating the change, or referencing the task/caller — keep only non-obvious WHY
 
 ### Agent 3: Efficiency Review
 
-Review the same changes for efficiency:
-
 1. **Unnecessary work**: redundant computations, repeated file reads, duplicate network/API calls, N+1 patterns
-2. **Missed concurrency**: independent operations run sequentially when they could run in parallel
-3. **Hot-path bloat**: new blocking work added to startup or per-request/per-render hot paths
-4. **Recurring no-op updates**: state/store updates inside polling loops, intervals, or event handlers that fire unconditionally — add a change-detection guard so downstream consumers aren't notified when nothing changed. Also: if a wrapper function takes an updater/reducer callback, verify it honors same-reference returns (or whatever the "no change" signal is) — otherwise callers' early-return no-ops are silently defeated
-5. **Unnecessary existence checks**: pre-checking file/resource existence before operating (TOCTOU anti-pattern) — operate directly and handle the error
+2. **Missed concurrency**: independent operations run sequentially
+3. **Hot-path bloat**: blocking work on startup or per-request/per-render hot paths
+4. **Recurring no-op updates**: unconditional state/store updates inside polling loops, intervals, or event handlers — add change-detection guards. If a wrapper takes an updater/reducer callback, verify it honors same-reference returns
+5. **Unnecessary existence checks**: pre-checking file/resource existence (TOCTOU anti-pattern)
 6. **Memory**: unbounded data structures, missing cleanup, event listener leaks
-7. **Overly broad operations**: reading entire files when only a portion is needed, loading all items when filtering for one
+7. **Overly broad operations**: loading all items when filtering for one
 
-## Phase 3: Fix Issues
+## Phase 3: Triage & Tier Every Finding
 
-Wait for all three agents to complete. Aggregate their findings and fix each issue directly. If a finding is a false positive or not worth addressing, note it and move on — do not argue with the finding, just skip it.
+Aggregate all findings from the three agents. **Every finding gets a tier** — no subjective "not worth it" skipping.
 
-When done, briefly summarize what was fixed (or confirm the code was already clean).
+### Tier 1 — Mechanical swap (apply freely)
+
+Fix is provably output-preserving. No contract change, no semantic shift.
+
+- Utility swap where old and new produce identical output (`` `$${x.toFixed(2)}` `` → `formatCurrency(x)` when both yield `$1.23`)
+- Constant hoisting, lifting to module scope
+- `useMemo` / `memo` wrapping when inputs are already stable
+- Dead-code removal (verify zero consumers via grep first)
+- Import consolidation, barrel re-export
+
+**Action:** apply, run typecheck.
+
+### Tier 2 — Structural refactor (apply with per-file validation)
+
+Fix changes code shape but preserves public contract. Callers continue to work without modification.
+
+- Extracting a duplicated component/function to a shared location
+- Splitting a component to isolate re-renders
+- Pre-computing values to flatten a hot comparator
+- Selector factoring (when callers stay unchanged)
+- Guarding no-op store updates
+
+**Action:** apply per file. After each file, run `tsc --noEmit` and scoped tests. On failure, `git checkout` that file and move the finding to the skip report with category `(b)`.
+
+### Tier 3 — Semantic change (confirm before applying)
+
+Fix changes a public contract, output, or signature. Callers may need updates. Behavior may visibly shift.
+
+- Function signature changes (positional → options bag, added/removed params)
+- Enum / const-object conversions when callers use string literals
+- Prop regrouping (handlers bag, options bag)
+- Format changes that alter rendered output (e.g., `'0'` → `'0.00'`)
+- Type widening/narrowing that affects consumers
+
+**Action:** do **not** apply silently. List all Tier 3 findings together, show the proposed diff shape, and ask the user: *"Apply these N Tier 3 changes? [y / pick / skip]"*
+
+### The three valid skip categories
+
+A finding may be skipped **only** when one of these is true:
+- **(a) Output would change.** Existing utility does not produce identical output for the input domain. Cite the divergent case.
+- **(b) Broke a test.** Applied, tests failed, auto-reverted. Cite the test name.
+- **(c) Contradicts a project rule.** CLAUDE.md / project docs explicitly forbid the pattern. Cite the rule.
+
+"Mechanical churn," "out of scope," "cosmetic," "low impact," and "not worth it" are **not** skip categories.
+
+## Phase 4: Apply
+
+### Budget
+
+Hard caps per scrub run:
+- **Max 30 findings applied**
+- **Max 500 net lines changed**
+
+When findings exceed the budget, stop at the cap and surface the remainder as a tiered continuation prompt: *"Applied 30 of N. Tier 1 remaining: X. Tier 2 remaining: Y. Tier 3 awaiting confirm: Z. Continue?"*
+
+### Order
+
+1. All Tier 1 first, grouped by file.
+2. Then Tier 2, grouped by file, with per-file validation gate.
+3. Then Tier 3, only after user confirmation.
+
+### Per-file commit
+
+Each file's fixes commit independently with a conventional message (`refactor(scope): scrub — <what changed in this file>`). One file = one commit = one revertable unit. Do **not** push; leave that to the user.
+
+### Gates
+
+- After Tier 1: `tsc --noEmit` (or language equivalent) must pass.
+- After each Tier 2 file: typecheck + scoped tests must pass. On failure: revert the file, classify `(b)`.
+- After Tier 3: full project test suite must pass before handing back.
+
+## Phase 5: Report
+
+Conclude with a structured report in this exact shape:
+
+```
+## Scrub Report
+
+### Applied
+- Tier 1: N findings across M files — commits <sha1>..<shaN>
+- Tier 2: N findings across M files — commits <sha1>..<shaN>
+- Tier 3: N findings applied after confirmation
+
+### Skipped
+<one line per skipped finding>
+- <file>:<line> — <category (a|b|c)> — <one-sentence evidence>
+
+### Pending confirmation (Tier 3)
+<list if user declined or postponed>
+
+### Budget
+- Findings applied: N / 30
+- Lines changed: N / 500
+- Remaining: <continuation list if truncated>
+```
+
+The skip section must be exhaustive. If a finding was surfaced by any agent, it appears either under Applied or under Skipped — no finding silently disappears.
