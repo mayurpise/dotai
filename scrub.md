@@ -1,5 +1,25 @@
 # Scrub: Code Review and Cleanup
 
+## Installation
+
+This file (`scrub.md`) is stored flat in the repo. Each tool expects it at
+`scrub/SKILL.md` inside its skills directory. Run the install script to copy
+it into place:
+
+```bash
+# Auto-detect installed tools
+./install.sh
+
+# Or target a specific tool
+./install.sh --cursor     # ~/.cursor/skills/scrub/SKILL.md
+./install.sh --claude     # ~/.claude/skills/scrub/SKILL.md
+./install.sh --copilot    # ~/.github-copilot/skills/scrub/SKILL.md
+./install.sh --all        # all three
+```
+
+---
+
+
 Review a target directory for reuse, quality, and efficiency, then **apply every actionable finding** within a defined safety envelope. Skipping is the exception, not the default.
 
 ## Phase 1: Identify Target
