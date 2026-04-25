@@ -63,9 +63,5 @@ Without this, models either over-apply (making risky changes autonomously) or un
 
 ## Combined Effect
 
-Making these public gives other teams a reference for two things most agent configs lack:
-
 1. **Defensive rules** — explicit anti-patterns, skip constraints, gates, and budget caps that limit how much damage an autonomous agent can do
 2. **Token discipline** — output routing, gated questions, and format templates that make sessions leaner without losing quality
-
-The configs are language- and framework-agnostic, which is the main reason they're worth sharing as a standalone repo.
