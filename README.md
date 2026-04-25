@@ -17,16 +17,28 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 ## Install
 
 ```bash
-# Auto-detect installed tools
+# Skills + config for all detected tools (recommended)
+./install.sh --config
+```
+
+That's it. One command installs the `/scrub` skill and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.github-copilot/`).
+
+**Other options:**
+
+```bash
+# Skills only, auto-detect tools
 ./install.sh
 
-# Target a specific tool
+# Target a specific tool (skill only)
 ./install.sh --claude     # Claude Code
 ./install.sh --cursor     # Cursor
 ./install.sh --copilot    # GitHub Copilot
 ./install.sh --all        # all three
 
-# Install config into a project directory
+# Skills + config for all tools (same as --config alone)
+./install.sh --all --config
+
+# Install config into a specific project directory
 ./install.sh --config <dir>
 ```
 
