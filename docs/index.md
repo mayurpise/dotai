@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and [scrub.md](https://github.com/mayurpise/dotai/blob/main/scrub.md): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; **scrub.md** controls _what_ it does in a specific high-risk workflow. Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -45,7 +45,7 @@ Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and [scr
 
 ---
 
-### scrub.md
+### skills/scrub
 
 **Token Efficiency**
 
@@ -72,6 +72,28 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Per-file commits** reduce the blast radius of any single bad application. One file = one revertable unit. Without this instruction, models batch changes across files into one commit, making targeted rollbacks impossible.
 
 **Gates between tiers** (typecheck after T1, typecheck + tests after each T2 file) create mandatory feedback loops. Without gates, errors in early files compound silently into later files, and the final state is broken in ways the model can't attribute to a specific change.
+
+---
+
+### skills/skill-review
+
+**Token Efficiency**
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Pre-flight scan before LLM judge** | Deterministic grep/awk checks for merge markers, `file://`, and frontmatter shape run first. The highest-impact bugs are caught without spending Tessl's LLM tokens. |
+| **Per-suggestion triage table** | Fixed category → default-action mapping replaces ad-hoc deliberation per suggestion. The model classifies and acts; it doesn't re-derive the rubric each time. |
+| **Structured per-skill report** | Exact schema (Pre-flight / Accepted / Deferred / Rejected / Build) prevents format improvisation across batch runs. |
+
+**Steering Better Decisions**
+
+**Claim verification first** — every Tessl suggestion is checked against the actual file before any edit. Tessl's content judge has documented biases (favors shorter skills, invents example CLI syntax). Treating the score as a target produces regressions; verifying each claim produces fixes.
+
+**Categorical reject list** — "Trim Red Flags / anti-pattern guards" and "Remove placeholders Claude already knows" are pre-rejected by default. These are the two failure modes observed across a 33-skill batch: the LLM judge erodes anti-regression guards because it can't measure their value.
+
+**Regression-risk check before any edit** — three explicit questions (cross-references? user-visible artifact? build-pipeline contract?) before touching the file. A "yes" or "unsure" on any one defers the edit. Prevents the common pattern of accepting an LLM suggestion that breaks downstream consumers.
+
+**Watch the suggestion list, not the score** — explicit calibration note that the content judge is non-deterministic (±5 points) and additive fixes can lower the conciseness score. Chasing the score produces worse skills.
 
 ---
 

@@ -1,16 +1,17 @@
 #!/usr/bin/env bash
-# Installs the scrub skill and/or project config files for supported AI coding tools.
+# Installs the dotai skills and/or project config files for supported AI coding tools.
 # CLAUDE.md is the single source of truth; config files are generated at install time.
+# Skills live under skills/<name>/SKILL.md and are installed to each tool's skills dir.
 #
 # Usage:
-#   ./install.sh                        # install skill for all detected tools
-#   ./install.sh --cursor               # skill for Cursor only
-#   ./install.sh --claude               # skill for Claude Code only
-#   ./install.sh --copilot              # skill for GitHub Copilot only
-#   ./install.sh --all                  # skill for all tools (explicit)
+#   ./install.sh                        # install all skills for all detected tools
+#   ./install.sh --cursor               # skills for Cursor only
+#   ./install.sh --claude               # skills for Claude Code only
+#   ./install.sh --copilot              # skills for GitHub Copilot only
+#   ./install.sh --all                  # skills for all tools (explicit)
 #   ./install.sh --config               # install config to each tool's global home dir
 #   ./install.sh --config <dir>         # install config into a specific project dir
-#   ./install.sh --all --config         # skill + config, both to global tool dirs
+#   ./install.sh --all --config         # skills + config, both to global tool dirs
 #
 # Global config destinations (no dir given):
 #   Claude Code  → ~/.claude/CLAUDE.md
@@ -21,25 +22,38 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_SRC="$SCRIPT_DIR/scrub.md"
+SKILLS_DIR="$SCRIPT_DIR/skills"
 CLAUDE_SRC="$SCRIPT_DIR/CLAUDE.md"
-SKILL_NAME="scrub"
 SKILL_FILE="SKILL.md"
 
-# Global skill install paths
-CURSOR_SKILL="$HOME/.cursor/skills/$SKILL_NAME/$SKILL_FILE"
-CLAUDE_SKILL="$HOME/.claude/skills/$SKILL_NAME/$SKILL_FILE"
-COPILOT_SKILL="$HOME/.github-copilot/skills/$SKILL_NAME/$SKILL_FILE"
+# Per-tool skills install roots
+CURSOR_SKILLS_ROOT="$HOME/.cursor/skills"
+CLAUDE_SKILLS_ROOT="$HOME/.claude/skills"
+COPILOT_SKILLS_ROOT="$HOME/.github-copilot/skills"
 
 # Global config install paths
 CURSOR_CONFIG="$HOME/.cursor/rules/project.mdc"
 CLAUDE_CONFIG="$HOME/.claude/CLAUDE.md"
 
-install_skill() {
-  local dest="$1" tool="$2"
-  mkdir -p "$(dirname "$dest")"
-  cp "$SKILL_SRC" "$dest"
-  echo "  ✓ skill  $tool → $dest"
+install_skills_to_root() {
+  local dest_root="$1" tool="$2"
+  shopt -s nullglob
+  local installed_any=0
+  for skill_dir in "$SKILLS_DIR"/*/; do
+    local name
+    name="$(basename "$skill_dir")"
+    local src="$skill_dir$SKILL_FILE"
+    [[ -f "$src" ]] || continue
+    local dest="$dest_root/$name/$SKILL_FILE"
+    mkdir -p "$(dirname "$dest")"
+    cp "$src" "$dest"
+    echo "  ✓ skill  $tool/$name → $dest"
+    installed_any=1
+  done
+  shopt -u nullglob
+  if [[ $installed_any -eq 0 ]]; then
+    echo "  ! no skills found under $SKILLS_DIR"
+  fi
 }
 
 # Install config to each tool's global home dir
@@ -101,9 +115,9 @@ install_config_project() {
 
 detect_and_install_skills() {
   local installed=0
-  [[ -d "$HOME/.cursor" ]]         && { install_skill "$CURSOR_SKILL"  "Cursor";         installed=1; }
-  [[ -d "$HOME/.claude" ]]         && { install_skill "$CLAUDE_SKILL"  "Claude Code";    installed=1; }
-  [[ -d "$HOME/.github-copilot" ]] && { install_skill "$COPILOT_SKILL" "GitHub Copilot"; installed=1; }
+  [[ -d "$HOME/.cursor" ]]         && { install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor";         installed=1; }
+  [[ -d "$HOME/.claude" ]]         && { install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code";    installed=1; }
+  [[ -d "$HOME/.github-copilot" ]] && { install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot"; installed=1; }
   if [[ $installed -eq 0 ]]; then
     echo "No supported tools detected. Use --cursor, --claude, or --copilot to install explicitly."
     exit 1
@@ -115,7 +129,7 @@ do_cursor=0; do_claude=0; do_copilot=0; do_all=0
 do_config=0; config_dir=""
 
 if [[ $# -eq 0 ]]; then
-  echo "Installing scrub skill for detected tools..."
+  echo "Installing dotai skills for detected tools..."
   detect_and_install_skills
   exit 0
 fi
@@ -160,9 +174,9 @@ fi
 # install skills
 for tool in $skill_tools; do
   case "$tool" in
-    cursor)  install_skill "$CURSOR_SKILL"  "Cursor" ;;
-    claude)  install_skill "$CLAUDE_SKILL"  "Claude Code" ;;
-    copilot) install_skill "$COPILOT_SKILL" "GitHub Copilot" ;;
+    cursor)  install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor" ;;
+    claude)  install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code" ;;
+    copilot) install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot" ;;
   esac
 done
 

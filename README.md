@@ -11,7 +11,8 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 | File | Purpose |
 |------|---------|
 | `CLAUDE.md` | Project-level agent operating instructions |
-| `scrub.md` | `/scrub` skill — structured code review and cleanup |
+| `skills/scrub/SKILL.md` | `/scrub` skill — structured code review and cleanup |
+| `skills/skill-review/SKILL.md` | `/skill-review` skill — audit SKILL.md files with Tessl, then triage suggestions before applying |
 | `install.sh` | Copies files to the right location for each tool |
 
 ## Install
@@ -21,7 +22,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 ./install.sh --config
 ```
 
-That's it. One command installs the `/scrub` skill and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.github-copilot/`).
+That's it. One command installs every skill under `skills/` and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.github-copilot/`).
 
 **Other options:**
 
