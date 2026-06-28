@@ -45,9 +45,9 @@ The one cost of the durable layer is **double-entry**: expanding a WT-ID into th
 | # | Change | Type | Status |
 |---|---|---|---|
 | 1 | Fix `TaskCreate / TodoWrite` reference — TodoWrite deprecated v2.1.142; lead with Task tools | Accuracy bug | Applied |
-| 2 | Add dependency modeling — `Blocked by` column (WT-ID refs) and/or `BLOCKED` status | Feature | Proposed |
-| 3 | Add WIP-cap note — flag excessive concurrent IN-PROGRESS | Polish | Proposed |
-| 4 | Add optional `Owner` column for multi-agent/team trackers | Feature (low value solo) | Proposed |
-| 5 | Note: only expand genuinely multi-step items to the session list (minimize double-entry) | Polish | Proposed |
+| 2 | Add dependency modeling — `Blocked by` column (WT-ID refs) + `BLOCKED` status | Feature | Applied |
+| 3 | Add WIP-cap note — flag excessive concurrent IN-PROGRESS | Polish | Applied |
+| 4 | Add optional `Owner` column for multi-agent/team trackers | Feature | Applied |
+| 5 | Note: only expand genuinely multi-step items to the session list (minimize double-entry) | Polish | Applied |
 
-Items 2-5 are scope changes left for the user to approve. Item 1 is applied (unambiguous correctness fix).
+All five recommendations applied.

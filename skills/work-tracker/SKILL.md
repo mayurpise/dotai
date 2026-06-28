@@ -16,6 +16,7 @@ One canonical tracker holds status; source docs hold detail; verify before you b
 - Dumping a >20-line report/plan/audit into the chat instead of a file
 - Marking a row DONE without evidence (commit SHA, merged PR, or a grep showing the symbol exists)
 - Flipping a task's status without re-checking its checkbox and recomputing the progress bars (stale bar = lie)
+- Marking a row `BLOCKED` without naming the blocking WT-ID, or starting a `BLOCKED` item before its blocker is DONE
 
 **One tracker is canonical. Verify the gap before coding. Status never lives in two places.**
 
@@ -53,9 +54,9 @@ Apply on every project. If a tracker already exists, **update it** — never for
 The tracker is laid out top-down in this exact order:
 
 1. **Overall progress bar** — a rendered bar + `done/total (N%)` at the very top, so progress is visible at a glance (see Progress rendering)
-2. **Status taxonomy** — the legend, used everywhere: `DONE` / `IN-PROGRESS` / `PLANNED` / `GAP` / `DESIGN-ONLY` / `WON'T-DO` / `SIGN-OFF`
+2. **Status taxonomy** — the legend, used everywhere: `DONE` / `IN-PROGRESS` / `BLOCKED` / `PLANNED` / `GAP` / `DESIGN-ONLY` / `WON'T-DO` / `SIGN-OFF`
 3. **Workstream rollup dashboard** — one row per workstream, counts by status, **plus a per-workstream progress bar**
-4. **Prioritized tiered backlog** — risk/impact-first, each row a **checkbox** with a stable referenceable ID (e.g. `WT-012`)
+4. **Prioritized tiered backlog** — risk/impact-first, each row a **checkbox** with a stable referenceable ID (e.g. `WT-012`), a `Blocked by` column (other WT-IDs), and an optional `Owner`
 5. **Per-workstream detail** — grouped **checkbox** items under each workstream
 6. **Source-document map** — which source doc each item's detail lives in
 7. **Reconciliation log** — recently-shipped items flipped to DONE with evidence
@@ -73,8 +74,13 @@ Every task is a checkbox so progress is scannable, and every progress total roll
   Overall: [███████░░░] 67% — 18 done · 4 in-progress / 30
   ```
 
-- **Percentage** = `((DONE + SIGN-OFF) + 0.5 × IN-PROGRESS) ÷ (total tasks excluding WON'T-DO)`, rounded to a whole number. **An `IN-PROGRESS` task counts as half.** Filled cells = `round(percent ÷ 10)`.
+- **Percentage** = `((DONE + SIGN-OFF) + 0.5 × IN-PROGRESS) ÷ (total tasks excluding WON'T-DO)`, rounded to a whole number. **An `IN-PROGRESS` task counts as half.** `BLOCKED`, `PLANNED`, `GAP`, `DESIGN-ONLY` count as zero (still in the denominator). Filled cells = `round(percent ÷ 10)`.
 - **Per-workstream bar** — same formula, scoped to that workstream's tasks; render it in the rollup row.
+- **WIP discipline** — keep concurrent `IN-PROGRESS` small (≈3 or fewer). Many half-credit rows inflate the bar without shipping anything; finishing beats starting. Mirrors the native task convention of ~one task in progress.
+
+### Dependencies
+
+A `BLOCKED` row **must** name its blocker(s) in the `Blocked by` column (e.g. `WT-002`). When the blocker reaches `DONE`, clear the column and flip the row to `PLANNED` or `IN-PROGRESS`. Never start a `BLOCKED` item — resolve the blocker first. (Native Task tools model this with `blockedBy`; the tracker mirrors it in markdown.)
 
 ### Subtasks and the in-session todo list
 
@@ -96,6 +102,7 @@ Three layers — keep them distinct:
   ```
 
   An item is `IN-PROGRESS` when some-but-not-all subtasks are checked, `DONE` when all are. That partial state is exactly what earns the item its half-credit in the bar.
+- **Only expand genuinely multi-step work.** A single-step item stays a tracker row and skips the in-session list entirely — expanding it is pure double-entry. Reserve the session list for items that are multi-step or span more than one session.
 - **Sync direction.** At pick-up, expand the chosen `WT-ID` into the live in-session todo list and execute against it. At completion, collapse back into the tracker: tick the subtasks/checkbox, set Status, recompute the bars, add a reconciliation row. The ephemeral list is the scratchpad; the tracker is the record — never treat the session todo list as the source of truth.
 
 ### Verify-first protocol (mandatory, embed it in the tracker)
@@ -130,17 +137,17 @@ Copy this skeleton into `docs/WORK_TRACKER.md` on first build:
 > 4) flip done/obsolete rows to DONE/WON'T-DO with evidence. Only then write code.
 
 ## Status taxonomy
-DONE · IN-PROGRESS · PLANNED · GAP · DESIGN-ONLY · WON'T-DO · SIGN-OFF
+DONE · IN-PROGRESS · BLOCKED · PLANNED · GAP · DESIGN-ONLY · WON'T-DO · SIGN-OFF
 
 ## Workstream rollup
-| Workstream | Progress | DONE | IN-PROGRESS | PLANNED | GAP | Notes |
-|---|---|---|---|---|---|---|
-|  | `[░░░░░░░░░░] 0%` |  |  |  |  |  |
+| Workstream | Progress | DONE | IN-PROGRESS | BLOCKED | PLANNED | GAP | Notes |
+|---|---|---|---|---|---|---|---|
+|  | `[░░░░░░░░░░] 0%` |  |  |  |  |  |  |
 
 ## Backlog (risk/impact-first)
-| Done | ID | Item | Workstream | Status | Priority | Source doc |
-|---|---|---|---|---|---|---|
-| [ ] | WT-001 |  |  |  |  |  |
+| Done | ID | Item | Workstream | Status | Priority | Blocked by | Owner | Source doc |
+|---|---|---|---|---|---|---|---|---|
+| [ ] | WT-001 |  |  |  |  |  |  |  |
 
 ## Per-workstream detail
 ### <Workstream>
