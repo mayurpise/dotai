@@ -84,7 +84,7 @@ Three layers — keep them distinct:
 |---|---|---|---|
 | Master tracker | `docs/WORK_TRACKER.md` | durable, cross-session | one row per `WT-ID` |
 | Subtask checklist | nested under the item in per-workstream detail | durable | the TODO steps of one item |
-| In-session todo list | the live task tool (TaskCreate / TodoWrite) | ephemeral, this session only | execution scratchpad |
+| In-session todo list | the live Task tools (`TaskCreate`/`TaskUpdate`; `TodoWrite` is its deprecated predecessor) | ephemeral, this session only | execution scratchpad |
 
 - **A multi-step item expands into a nested checklist** under its `WT-ID` in per-workstream detail. The parent stays `- [ ]` until every child is checked:
 
