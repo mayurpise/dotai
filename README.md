@@ -13,6 +13,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 | `CLAUDE.md` | Project-level agent operating instructions |
 | `skills/scrub/SKILL.md` | `/scrub` skill — structured code review and cleanup |
 | `skills/skill-review/SKILL.md` | `/skill-review` skill — audit SKILL.md files with Tessl, then triage suggestions before applying |
+| `skills/work-tracker/SKILL.md` | `/work-tracker` skill — route long-form docs and maintain one canonical master tracker with a verify-first protocol |
 | `install.sh` | Copies files to the right location for each tool |
 
 ## Install
