@@ -15,6 +15,7 @@ One canonical tracker holds status; source docs hold detail; verify before you b
 - Deleting a superseded doc before repointing its inbound references (you'll leave dangling links)
 - Dumping a >20-line report/plan/audit into the chat instead of a file
 - Marking a row DONE without evidence (commit SHA, merged PR, or a grep showing the symbol exists)
+- Flipping a task's status without re-checking its checkbox and recomputing the progress bars (stale bar = lie)
 
 **One tracker is canonical. Verify the gap before coding. Status never lives in two places.**
 
@@ -51,14 +52,29 @@ Apply on every project. If a tracker already exists, **update it** — never for
 
 The tracker is laid out top-down in this exact order:
 
-1. **Status taxonomy** — the legend, used everywhere: `DONE` / `IN-PROGRESS` / `PLANNED` / `GAP` / `DESIGN-ONLY` / `WON'T-DO` / `SIGN-OFF`
-2. **Workstream rollup dashboard** — one row per workstream, counts by status
-3. **Prioritized tiered backlog** — risk/impact-first, each item with a stable referenceable ID (e.g. `WT-012`)
-4. **Per-workstream detail** — grouped items under each workstream
-5. **Source-document map** — which source doc each item's detail lives in
-6. **Reconciliation log** — recently-shipped items flipped to DONE with evidence
+1. **Overall progress bar** — a rendered bar + `done/total (N%)` at the very top, so progress is visible at a glance (see Progress rendering)
+2. **Status taxonomy** — the legend, used everywhere: `DONE` / `IN-PROGRESS` / `PLANNED` / `GAP` / `DESIGN-ONLY` / `WON'T-DO` / `SIGN-OFF`
+3. **Workstream rollup dashboard** — one row per workstream, counts by status, **plus a per-workstream progress bar**
+4. **Prioritized tiered backlog** — risk/impact-first, each row a **checkbox** with a stable referenceable ID (e.g. `WT-012`)
+5. **Per-workstream detail** — grouped **checkbox** items under each workstream
+6. **Source-document map** — which source doc each item's detail lives in
+7. **Reconciliation log** — recently-shipped items flipped to DONE with evidence
 
 Status is canonical **only** in the tracker. Detail stays in source docs. Never let status leak back into source docs.
+
+### Progress rendering
+
+Every task is a checkbox so progress is scannable, and every progress total rolls up into a rendered bar.
+
+- **Checkbox per task** — `- [x]` when status is `DONE` or `SIGN-OFF`; `- [ ]` otherwise. `WON'T-DO` is excluded from the count entirely (strike it: `- [x] ~~WT-009~~`).
+- **Progress bar** — 10 cells, `█` filled and `░` empty, followed by the percentage and counts. Recompute on every tracker touch.
+
+  ```
+  Overall: [██████░░░░] 60% — 18/30 done
+  ```
+
+- **Percentage** = `DONE+SIGN-OFF` ÷ `total tasks excluding WON'T-DO`, rounded to a whole number. Filled cells = `round(percent ÷ 10)`.
+- **Per-workstream bar** — same formula, scoped to that workstream's tasks; render it in the rollup row.
 
 ### Verify-first protocol (mandatory, embed it in the tracker)
 
@@ -84,6 +100,8 @@ Copy this skeleton into `docs/WORK_TRACKER.md` on first build:
 ```markdown
 # Work Tracker
 
+**Overall: [░░░░░░░░░░] 0% — 0/0 done**
+
 > Canonical status lives here. Detail lives in the linked source docs.
 > **Verify-first (before coding any item):** 1) re-read state · 2) verify the gap
 > still exists on main (`git log` + grep the symbol) · 3) confirm still required ·
@@ -93,18 +111,18 @@ Copy this skeleton into `docs/WORK_TRACKER.md` on first build:
 DONE · IN-PROGRESS · PLANNED · GAP · DESIGN-ONLY · WON'T-DO · SIGN-OFF
 
 ## Workstream rollup
-| Workstream | DONE | IN-PROGRESS | PLANNED | GAP | Notes |
-|---|---|---|---|---|---|
-|  |  |  |  |  |  |
+| Workstream | Progress | DONE | IN-PROGRESS | PLANNED | GAP | Notes |
+|---|---|---|---|---|---|---|
+|  | `[░░░░░░░░░░] 0%` |  |  |  |  |  |
 
 ## Backlog (risk/impact-first)
-| ID | Item | Workstream | Status | Priority | Source doc |
-|---|---|---|---|---|---|
-| WT-001 |  |  |  |  |  |
+| Done | ID | Item | Workstream | Status | Priority | Source doc |
+|---|---|---|---|---|---|---|
+| [ ] | WT-001 |  |  |  |  |  |
 
 ## Per-workstream detail
 ### <Workstream>
-- **WT-001** — <one line>; detail → `docs/<source>.md`
+- [ ] **WT-001** — <one line>; detail → `docs/<source>.md`
 
 ## Source-document map
 | Source doc | Covers IDs |
@@ -124,7 +142,7 @@ DONE · IN-PROGRESS · PLANNED · GAP · DESIGN-ONLY · WON'T-DO · SIGN-OFF
 3. (Tracker) Locate existing docs/WORK_TRACKER.md.
    → exists: reconcile it against the repo.  → absent: scaffold from the template.
 4. Inventory scattered status across source docs → fold into the tracker's backlog with stable IDs.
-5. Run verify-first on each open item → flip stale rows to DONE/WON'T-DO with evidence.
+5. Run verify-first on each open item → flip stale rows to DONE/WON'T-DO with evidence → tick checkboxes and recompute the overall + per-workstream bars.
 6. Retire superseded docs: repoint inbound references to the tracker, THEN delete.
 7. Register the tracker in the docs index. Report: counts moved, rows flipped, docs retired.
 ```
