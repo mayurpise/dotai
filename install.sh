@@ -4,20 +4,28 @@
 # Skills live under skills/<name>/SKILL.md and are installed to each tool's skills dir.
 #
 # Usage:
-#   ./install.sh                        # install all skills for all detected tools
+#   ./install.sh                        # skills for detected tools
 #   ./install.sh --cursor               # skills for Cursor only
 #   ./install.sh --claude               # skills for Claude Code only
 #   ./install.sh --copilot              # skills for GitHub Copilot only
-#   ./install.sh --all                  # skills for all tools (explicit)
-#   ./install.sh --config               # install config to each tool's global home dir
-#   ./install.sh --config <dir>         # install config into a specific project dir
-#   ./install.sh --all --config         # skills + config, both to global tool dirs
+#   ./install.sh --all                  # skills for all three tools (forced, no detection)
+#   ./install.sh --config               # skills + global config for detected tools
+#   ./install.sh --config <dir>         # config into a project dir ONLY (no global skills)
+#   ./install.sh --all --config         # skills + global config for all three tools
+#   ./install.sh -h | --help            # show usage
+#
+# Safety: an existing destination is backed up to <file>.bak before it is replaced;
+# files that are already identical are left untouched.
 #
 # Global config destinations (no dir given):
 #   Claude Code  → ~/.claude/CLAUDE.md
 #   Cursor       → ~/.cursor/rules/project.mdc
 #   Copilot      → project-level only; supply a dir
 #   AGENTS.md    → project-level only; supply a dir
+#
+# NOTE: "skills" (SKILL.md) are primarily a Claude Code construct. The Cursor and
+# Copilot skill dirs are best-effort; verify those tools actually consume SKILL.md
+# before relying on them. The Cursor global rules path below is likewise best-effort.
 
 set -euo pipefail
 
@@ -35,104 +43,102 @@ COPILOT_SKILLS_ROOT="$HOME/.github-copilot/skills"
 CURSOR_CONFIG="$HOME/.cursor/rules/project.mdc"
 CLAUDE_CONFIG="$HOME/.claude/CLAUDE.md"
 
+CURSOR_FRONTMATTER='---\ndescription: Project-level coding and agent guidelines\nalwaysApply: true\n---\n\n'
+
+print_usage() {
+  sed -n '6,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+}
+
+# Membership test: has <needle> <list...>
+has() {
+  local needle="$1"; shift
+  local x
+  for x in "$@"; do [[ "$x" == "$needle" ]] && return 0; done
+  return 1
+}
+
+# Back up an existing file to <file>.bak so an overwrite is recoverable.
+backup_if_exists() {
+  if [[ -f "$1" ]]; then
+    cp "$1" "$1.bak"
+    echo "    ↳ backed up existing → $1.bak"
+  fi
+  return 0
+}
+
+# Copy src→dest idempotently: skip if identical, back up before replacing.
+# Portable same-file/same-content handling via cmp (no realpath dependency).
+install_file() {
+  local src="$1" dest="$2" label="$3"
+  if cmp -s "$src" "$dest" 2>/dev/null; then
+    echo "  = $label unchanged → $dest"
+    return 0
+  fi
+  mkdir -p "$(dirname "$dest")"
+  backup_if_exists "$dest"
+  cp "$src" "$dest"
+  echo "  ✓ $label → $dest"
+}
+
+# Generate the Cursor config (frontmatter + CLAUDE.md) and install it via install_file.
+install_cursor_config() {
+  local dest="$1"
+  local tmp; tmp="$(mktemp)"
+  { printf -- "$CURSOR_FRONTMATTER"; cat "$CLAUDE_SRC"; } > "$tmp"
+  install_file "$tmp" "$dest" "config Cursor"
+  rm -f "$tmp"
+}
+
 install_skills_to_root() {
   local dest_root="$1" tool="$2"
   shopt -s nullglob
   local installed_any=0
   for skill_dir in "$SKILLS_DIR"/*/; do
-    local name
+    local name src dest
     name="$(basename "$skill_dir")"
-    local src="$skill_dir$SKILL_FILE"
+    src="$skill_dir$SKILL_FILE"
     [[ -f "$src" ]] || continue
-    local dest="$dest_root/$name/$SKILL_FILE"
-    mkdir -p "$(dirname "$dest")"
-    cp "$src" "$dest"
-    echo "  ✓ skill  $tool/$name → $dest"
+    dest="$dest_root/$name/$SKILL_FILE"
+    install_file "$src" "$dest" "skill  $tool/$name"
     installed_any=1
   done
   shopt -u nullglob
-  if [[ $installed_any -eq 0 ]]; then
-    echo "  ! no skills found under $SKILLS_DIR"
-  fi
+  [[ $installed_any -eq 0 ]] && echo "  ! no skills found under $SKILLS_DIR"
+  return 0
 }
 
-# Install config to each tool's global home dir
+# Install config to each targeted tool's global home dir.
 install_config_global() {
-  local tools="$1"
-
-  if [[ "$tools" == *"claude"* ]]; then
-    mkdir -p "$(dirname "$CLAUDE_CONFIG")"
-    cp "$CLAUDE_SRC" "$CLAUDE_CONFIG"
-    echo "  ✓ config Claude Code → $CLAUDE_CONFIG"
+  if has claude "$@"; then
+    install_file "$CLAUDE_SRC" "$CLAUDE_CONFIG" "config Claude Code"
   fi
-
-  if [[ "$tools" == *"cursor"* ]]; then
-    mkdir -p "$(dirname "$CURSOR_CONFIG")"
-    { printf -- '---\ndescription: Project-level coding and agent guidelines\nalwaysApply: true\n---\n\n'
-      cat "$CLAUDE_SRC"
-    } > "$CURSOR_CONFIG"
-    echo "  ✓ config Cursor     → $CURSOR_CONFIG"
+  if has cursor "$@"; then
+    install_cursor_config "$CURSOR_CONFIG"
   fi
-
-  if [[ "$tools" == *"copilot"* ]]; then
+  if has copilot "$@"; then
     echo "  ! config Copilot    → project-level only; use --config <dir>"
   fi
 }
 
-# Install config into a specific project directory
+# Install config into a specific project directory for each targeted tool.
 install_config_project() {
-  local dir="$1" tools="$2"
+  local dir="$1"; shift
   mkdir -p "$dir"
-
-  if [[ "$tools" == *"claude"* ]]; then
-    local dest="$dir/CLAUDE.md"
-    [[ "$(realpath "$CLAUDE_SRC")" == "$(realpath "$dest" 2>/dev/null || echo "")" ]] \
-      && echo "  ! config Claude Code → skipped (same file)" \
-      || { cp "$CLAUDE_SRC" "$dest"; echo "  ✓ config Claude Code → $dest"; }
+  if has claude "$@"; then
+    install_file "$CLAUDE_SRC" "$dir/CLAUDE.md"  "config Claude Code"
+    install_file "$CLAUDE_SRC" "$dir/AGENTS.md" "config AGENTS.md"
   fi
-
-  if [[ "$tools" == *"agents"* ]]; then
-    cp "$CLAUDE_SRC" "$dir/AGENTS.md"
-    echo "  ✓ config AGENTS.md  → $dir/AGENTS.md"
+  if has cursor "$@"; then
+    install_cursor_config "$dir/.cursor/rules/project.mdc"
   fi
-
-  if [[ "$tools" == *"cursor"* ]]; then
-    local dest="$dir/.cursor/rules/project.mdc"
-    mkdir -p "$(dirname "$dest")"
-    { printf -- '---\ndescription: Project-level coding and agent guidelines\nalwaysApply: true\n---\n\n'
-      cat "$CLAUDE_SRC"
-    } > "$dest"
-    echo "  ✓ config Cursor     → $dest"
-  fi
-
-  if [[ "$tools" == *"copilot"* ]]; then
-    local dest="$dir/.github/copilot-instructions.md"
-    mkdir -p "$(dirname "$dest")"
-    cp "$CLAUDE_SRC" "$dest"
-    echo "  ✓ config Copilot    → $dest"
-  fi
-}
-
-detect_and_install_skills() {
-  local installed=0
-  [[ -d "$HOME/.cursor" ]]         && { install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor";         installed=1; }
-  [[ -d "$HOME/.claude" ]]         && { install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code";    installed=1; }
-  [[ -d "$HOME/.github-copilot" ]] && { install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot"; installed=1; }
-  if [[ $installed -eq 0 ]]; then
-    echo "No supported tools detected. Use --cursor, --claude, or --copilot to install explicitly."
-    exit 1
+  if has copilot "$@"; then
+    install_file "$CLAUDE_SRC" "$dir/.github/copilot-instructions.md" "config Copilot"
   fi
 }
 
 # --- parse args ---
 do_cursor=0; do_claude=0; do_copilot=0; do_all=0
 do_config=0; config_dir=""
-
-if [[ $# -eq 0 ]]; then
-  echo "Installing dotai skills for detected tools..."
-  detect_and_install_skills
-  exit 0
-fi
 
 i=1
 while [[ $i -le $# ]]; do
@@ -142,6 +148,7 @@ while [[ $i -le $# ]]; do
     --claude)  do_claude=1 ;;
     --copilot) do_copilot=1 ;;
     --all)     do_all=1 ;;
+    -h|--help) print_usage; exit 0 ;;
     --config)
       do_config=1
       next=$(( i + 1 ))
@@ -152,41 +159,53 @@ while [[ $i -le $# ]]; do
       ;;
     *)
       echo "Unknown flag: $arg"
-      echo "Usage: ./install.sh [--cursor] [--claude] [--copilot] [--all] [--config [dir]]"
+      print_usage
       exit 1
       ;;
   esac
   i=$(( i + 1 ))
 done
 
-# resolve which tools are in scope
-if [[ $do_all -eq 1 || $(( do_cursor + do_claude + do_copilot )) -eq 0 ]]; then
-  skill_tools="cursor claude copilot"
-  config_tools="claude,agents,cursor,copilot"
+# --- resolve target tools (explicit > --all > detection) ---
+tools=()
+if [[ $do_all -eq 1 ]]; then
+  tools=(cursor claude copilot)
+elif [[ $(( do_cursor + do_claude + do_copilot )) -gt 0 ]]; then
+  [[ $do_cursor  -eq 1 ]] && tools+=(cursor)
+  [[ $do_claude  -eq 1 ]] && tools+=(claude)
+  [[ $do_copilot -eq 1 ]] && tools+=(copilot)
 else
-  skill_tools=""
-  config_tools=""
-  [[ $do_cursor  -eq 1 ]] && { skill_tools+=" cursor";  config_tools+="cursor,"; }
-  [[ $do_claude  -eq 1 ]] && { skill_tools+=" claude";  config_tools+="claude,agents,"; }
-  [[ $do_copilot -eq 1 ]] && { skill_tools+=" copilot"; config_tools+="copilot,"; }
+  [[ -d "$HOME/.cursor" ]]         && tools+=(cursor)
+  [[ -d "$HOME/.claude" ]]         && tools+=(claude)
+  [[ -d "$HOME/.github-copilot" ]] && tools+=(copilot)
 fi
 
-# install skills
-for tool in $skill_tools; do
-  case "$tool" in
-    cursor)  install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor" ;;
-    claude)  install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code" ;;
-    copilot) install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot" ;;
-  esac
-done
+if [[ ${#tools[@]} -eq 0 ]]; then
+  echo "No supported tools detected. Use --cursor, --claude, --copilot, or --all to install explicitly."
+  exit 1
+fi
 
-# install config
+# --- install skills (global-only; skipped entirely in project-config mode) ---
+if [[ -n "$config_dir" ]]; then
+  echo "Project-config mode: skipping global skill install (skills are global-only; run without <dir> to install them)."
+else
+  echo "Installing skills for: ${tools[*]}"
+  for tool in "${tools[@]}"; do
+    case "$tool" in
+      cursor)  install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor" ;;
+      claude)  install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code" ;;
+      copilot) install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot" ;;
+    esac
+  done
+fi
+
+# --- install config ---
 if [[ $do_config -eq 1 ]]; then
   if [[ -n "$config_dir" ]]; then
-    echo "Installing config files into $config_dir ..."
-    install_config_project "$config_dir" "$config_tools"
+    echo "Installing config into $config_dir for: ${tools[*]}"
+    install_config_project "$config_dir" "${tools[@]}"
   else
-    echo "Installing config files to global tool dirs..."
-    install_config_global "$config_tools"
+    echo "Installing global config for: ${tools[*]}"
+    install_config_global "${tools[@]}"
   fi
 fi
