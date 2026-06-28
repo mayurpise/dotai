@@ -26,6 +26,10 @@
 # NOTE: "skills" (SKILL.md) are primarily a Claude Code construct. The Cursor and
 # Copilot skill dirs are best-effort; verify those tools actually consume SKILL.md
 # before relying on them. The Cursor global rules path below is likewise best-effort.
+#
+# Installing Claude skills also wires a global SessionStart hook into
+# ~/.claude/settings.json that auto-activates the work-tracker skill each session
+# (idempotent; settings.json is backed up before merge; needs jq).
 
 set -euo pipefail
 
@@ -42,6 +46,11 @@ COPILOT_SKILLS_ROOT="$HOME/.github-copilot/skills"
 # Global config install paths
 CURSOR_CONFIG="$HOME/.cursor/rules/project.mdc"
 CLAUDE_CONFIG="$HOME/.claude/CLAUDE.md"
+
+# Claude SessionStart hook (auto-activates the work-tracker skill every session)
+CLAUDE_SETTINGS="$HOME/.claude/settings.json"
+HOOK_SRC="$SCRIPT_DIR/hooks/work-tracker-sessionstart.sh"
+HOOK_DEST="$HOME/.claude/hooks/work-tracker-sessionstart.sh"
 
 CURSOR_FRONTMATTER='---\ndescription: Project-level coding and agent guidelines\nalwaysApply: true\n---\n\n'
 
@@ -105,6 +114,49 @@ install_skills_to_root() {
   shopt -u nullglob
   [[ $installed_any -eq 0 ]] && echo "  ! no skills found under $SKILLS_DIR"
   return 0
+}
+
+# Install the Claude SessionStart hook and wire it into settings.json.
+# Global-only (settings.json hooks have no project scope). Idempotent; backs up
+# settings.json before merging. Requires jq for the merge — degrades gracefully.
+install_claude_hook() {
+  [[ -f "$HOOK_SRC" ]] || { echo "  ! hook   source missing: $HOOK_SRC"; return 0; }
+  install_file "$HOOK_SRC" "$HOOK_DEST" "hook   Claude SessionStart"
+  chmod +x "$HOOK_DEST"
+
+  local hook_cmd="bash $HOOK_DEST"
+
+  if ! command -v jq >/dev/null 2>&1; then
+    echo "  ! hook   jq not found — add a SessionStart hook to $CLAUDE_SETTINGS manually:"
+    echo "           matcher \"startup|resume|clear\" → command: $hook_cmd"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$CLAUDE_SETTINGS")"
+  [[ -f "$CLAUDE_SETTINGS" ]] || echo '{}' > "$CLAUDE_SETTINGS"
+
+  if jq -e --arg cmd "$hook_cmd" \
+       '[.hooks.SessionStart[]?.hooks[]?.command] | index($cmd)' \
+       "$CLAUDE_SETTINGS" >/dev/null 2>&1; then
+    echo "  = hook   Claude SessionStart already wired → $CLAUDE_SETTINGS"
+    return 0
+  fi
+
+  local tmp; tmp="$(mktemp)"
+  if jq --arg cmd "$hook_cmd" '
+        .hooks //= {} |
+        .hooks.SessionStart //= [] |
+        .hooks.SessionStart += [{
+          "matcher": "startup|resume|clear",
+          "hooks": [ { "type": "command", "command": $cmd } ]
+        }]' "$CLAUDE_SETTINGS" > "$tmp"; then
+    backup_if_exists "$CLAUDE_SETTINGS"
+    mv "$tmp" "$CLAUDE_SETTINGS"
+    echo "  ✓ hook   Claude SessionStart wired → $CLAUDE_SETTINGS"
+  else
+    rm -f "$tmp"
+    echo "  ! hook   failed to merge settings.json (left unchanged)"
+  fi
 }
 
 # Install config to each targeted tool's global home dir.
@@ -193,7 +245,7 @@ else
   for tool in "${tools[@]}"; do
     case "$tool" in
       cursor)  install_skills_to_root "$CURSOR_SKILLS_ROOT"  "Cursor" ;;
-      claude)  install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code" ;;
+      claude)  install_skills_to_root "$CLAUDE_SKILLS_ROOT"  "Claude Code"; install_claude_hook ;;
       copilot) install_skills_to_root "$COPILOT_SKILLS_ROOT" "GitHub Copilot" ;;
     esac
   done
