@@ -66,15 +66,37 @@ Status is canonical **only** in the tracker. Detail stays in source docs. Never 
 
 Every task is a checkbox so progress is scannable, and every progress total rolls up into a rendered bar.
 
-- **Checkbox per task** — `- [x]` when status is `DONE` or `SIGN-OFF`; `- [ ]` otherwise. `WON'T-DO` is excluded from the count entirely (strike it: `- [x] ~~WT-009~~`).
+- **Checkbox per task** — `- [x]` only when status is `DONE` or `SIGN-OFF` (all subtasks complete); `- [ ]` for everything else, **including `IN-PROGRESS`**. `WON'T-DO` is excluded from the count entirely (strike it: `- [x] ~~WT-009~~`).
 - **Progress bar** — 10 cells, `█` filled and `░` empty, followed by the percentage and counts. Recompute on every tracker touch.
 
   ```
-  Overall: [██████░░░░] 60% — 18/30 done
+  Overall: [███████░░░] 67% — 18 done · 4 in-progress / 30
   ```
 
-- **Percentage** = `DONE+SIGN-OFF` ÷ `total tasks excluding WON'T-DO`, rounded to a whole number. Filled cells = `round(percent ÷ 10)`.
+- **Percentage** = `((DONE + SIGN-OFF) + 0.5 × IN-PROGRESS) ÷ (total tasks excluding WON'T-DO)`, rounded to a whole number. **An `IN-PROGRESS` task counts as half.** Filled cells = `round(percent ÷ 10)`.
 - **Per-workstream bar** — same formula, scoped to that workstream's tasks; render it in the rollup row.
+
+### Subtasks and the in-session todo list
+
+Three layers — keep them distinct:
+
+| Layer | Where | Lifespan | Granularity |
+|---|---|---|---|
+| Master tracker | `docs/WORK_TRACKER.md` | durable, cross-session | one row per `WT-ID` |
+| Subtask checklist | nested under the item in per-workstream detail | durable | the TODO steps of one item |
+| In-session todo list | the live task tool (TaskCreate / TodoWrite) | ephemeral, this session only | execution scratchpad |
+
+- **A multi-step item expands into a nested checklist** under its `WT-ID` in per-workstream detail. The parent stays `- [ ]` until every child is checked:
+
+  ```
+  - [ ] **WT-004** — migrate auth to OIDC (IN-PROGRESS); detail → docs/auth.md
+    - [x] add provider config
+    - [ ] swap token middleware
+    - [ ] cut over callback URLs
+  ```
+
+  An item is `IN-PROGRESS` when some-but-not-all subtasks are checked, `DONE` when all are. That partial state is exactly what earns the item its half-credit in the bar.
+- **Sync direction.** At pick-up, expand the chosen `WT-ID` into the live in-session todo list and execute against it. At completion, collapse back into the tracker: tick the subtasks/checkbox, set Status, recompute the bars, add a reconciliation row. The ephemeral list is the scratchpad; the tracker is the record — never treat the session todo list as the source of truth.
 
 ### Verify-first protocol (mandatory, embed it in the tracker)
 
@@ -100,7 +122,7 @@ Copy this skeleton into `docs/WORK_TRACKER.md` on first build:
 ```markdown
 # Work Tracker
 
-**Overall: [░░░░░░░░░░] 0% — 0/0 done**
+**Overall: [░░░░░░░░░░] 0% — 0 done · 0 in-progress / 0**
 
 > Canonical status lives here. Detail lives in the linked source docs.
 > **Verify-first (before coding any item):** 1) re-read state · 2) verify the gap
