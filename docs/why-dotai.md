@@ -83,6 +83,28 @@ Without this, models either over-apply (making risky changes autonomously) or un
 
 ---
 
+## skills/minimal-code
+
+### Token Efficiency
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Manifest freeze before coding** | The model commits to exact files and signatures up front, so it cannot wander into unplanned files or abstractions mid-session. Unplanned scope is the largest source of wasted generation; freezing the surface area caps it. |
+| **Tests as the definition of done** | "Stop when the named tests pass" is a hard termination signal. Without it, models keep elaborating — extra branches, defensive checks, speculative helpers — long after the task is met. |
+| **Deletion pass on the diff** | Every added function or parameter must justify itself in one line or be removed. This inverts the default additive bias, shrinking both the diff and the context every future session must load. |
+
+### Steering Better Decisions
+
+**Out-of-scope defaults** name the gold-plating explicitly — no abstraction under 3 call sites, no config for a single caller, no class where a function works, no error handling for impossible inputs. Models associate these patterns with quality; stating them as _defaults to avoid_ overrides the trained bias more reliably than a generic "keep it simple."
+
+**Test-as-spec ordering** forces failing tests before implementation. This converts "write code and hope it is right" into "define pass/fail, then satisfy it" — the goal-driven discipline CLAUDE.md states, now with a gate the model cannot skip.
+
+**Self-critique gate** makes the model report pass/fail on four checks (every line traces to a test, every abstraction has ≥3 call sites, no speculative generality, not overcomplicated) before declaring done. An explicit checklist catches over-engineering that a vague "review your work" misses.
+
+**Relationship to /scrub** — minimal-code governs code being written; `/scrub` reviews code already written. Phase 4's deletion pass is a scrub on the model's own diff and hands off to `/scrub` for the surrounding tree. Together they bracket the authoring lifecycle: one prevents bloat, the other removes it.
+
+---
+
 ## Combined Effect
 
 1. **Defensive rules** — explicit anti-patterns, skip constraints, gates, and budget caps that limit how much damage an autonomous agent can do

@@ -90,6 +90,8 @@ Apply when the trigger condition fires. Otherwise do not invoke.
 
 **Tradeoff:** these bias toward caution over speed. Use judgment on trivial tasks.
 
+For test-backed implementation tasks, the `/minimal-code` skill runs these as an enforced sequence: freeze a manifest → write failing tests → implement to green → delete the rest.
+
 ### 1. Think Before Coding
 - State assumptions explicitly
 - If multiple interpretations exist, present them; do not pick silently
@@ -99,6 +101,8 @@ Apply when the trigger condition fires. Otherwise do not invoke.
 ### 2. Simplicity First
 - Minimum code that solves the problem
 - No features, abstractions, or configurability beyond what was asked
+- No abstraction (class, interface, strategy) until ≥3 real call sites exist; no class where a module-level function works
+- No configuration or parameters for a single caller
 - No error handling for impossible scenarios
 - If 200 lines could be 50, rewrite
 - Test: "Would a senior engineer call this overcomplicated?"
