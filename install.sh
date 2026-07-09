@@ -43,6 +43,11 @@ CURSOR_SKILLS_ROOT="$HOME/.cursor/skills"
 CLAUDE_SKILLS_ROOT="$HOME/.claude/skills"
 COPILOT_SKILLS_ROOT="$HOME/.github-copilot/skills"
 
+# Skills dotai used to ship but has retired. Removed from each tool's skills dir
+# on install so upgrades don't leave orphans behind (see remove_retired_skills).
+# Scoped to this explicit list — never touches skills dotai didn't install.
+RETIRED_SKILLS=(minimal-code refactor)
+
 # Global config install paths
 CURSOR_CONFIG="$HOME/.cursor/rules/project.mdc"
 CLAUDE_CONFIG="$HOME/.claude/CLAUDE.md"
@@ -113,7 +118,25 @@ install_skills_to_root() {
   done
   shopt -u nullglob
   [[ $installed_any -eq 0 ]] && echo "  ! no skills found under $SKILLS_DIR"
+  remove_retired_skills "$dest_root" "$tool"
   return 0
+}
+
+# Remove skills dotai has retired from a tool's skills dir so an upgrade doesn't
+# leave orphaned SKILL.md files behind. Backs up the SKILL.md to a sibling .bak
+# (outside the dir) before removing. Only touches names in RETIRED_SKILLS.
+remove_retired_skills() {
+  local dest_root="$1" tool="$2" name dir
+  for name in "${RETIRED_SKILLS[@]}"; do
+    dir="$dest_root/$name"
+    [[ -d "$dir" ]] || continue
+    if [[ -f "$dir/$SKILL_FILE" ]]; then
+      cp "$dir/$SKILL_FILE" "$dest_root/$name.$SKILL_FILE.bak"
+      echo "    ↳ backed up existing → $dest_root/$name.$SKILL_FILE.bak"
+    fi
+    rm -rf "$dir"
+    echo "  ✗ removed retired skill $tool/$name → $dir"
+  done
 }
 
 # Install the Claude SessionStart hook and wire it into settings.json.
