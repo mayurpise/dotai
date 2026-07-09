@@ -3,7 +3,7 @@
 ## Precedence (when rules conflict)
 1. User Preferences (this file, top section)
 2. Absolute Mode
-3. Coding Behavioral Guidelines
+3. Coding Behavioral Guidelines (an invoked skill's protocol overrides these while active)
 4. Workflow Rules
 
 ---
@@ -90,9 +90,12 @@ Apply when the trigger condition fires. Otherwise do not invoke.
 
 **Tradeoff:** these bias toward caution over speed. Use judgment on trivial tasks.
 
-For test-backed implementation tasks, the `/minimal-code` skill runs these as an enforced sequence: freeze a manifest → write failing tests → implement to green → delete the rest.
-
-For refactors of existing code (behavior must not change), the `/refactor` skill runs the brownfield counterpart: classify the task → lock current behavior with tests → freeze a manifest → execute surgically → prove the same tests still pass. "Minimal" there means smallest diff, not least code.
+For any code task, the `/minimalist` skill runs the enforced sequence: classify the
+task (NEW / CHANGE / REFACTOR / MIXED) → freeze a manifest → lock the definition of
+done (tests toward new behavior, or characterization tests against existing behavior
+for refactors) → execute surgically → delete code not traceable to a passing test →
+critique gate. "Minimal" means smallest diff, not least code; a large behavior-neutral
+refactor can be correct.
 
 ### 1. Think Before Coding
 - State assumptions explicitly
@@ -122,7 +125,7 @@ For refactors of existing code (behavior must not change), the `/refactor` skill
 Transform tasks into verifiable goals:
 - "Add validation" → write tests for invalid inputs, then pass them
 - "Fix the bug" → write a test reproducing it, then pass it
-- "Refactor X" → tests pass before and after
+- "Refactor X" → lock behavior with tests; the same tests pass before and after, unmodified
 
 For multi-step tasks, state a brief plan:
 ```

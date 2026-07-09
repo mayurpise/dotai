@@ -14,8 +14,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 | `skills/scrub/SKILL.md` | `/scrub` skill — tiered code review that applies fixes within a behavior-preserving safety envelope; skips changes it can't lock with a test |
 | `skills/skill-review/SKILL.md` | `/skill-review` skill — audit SKILL.md files with Tessl, then triage suggestions before applying |
 | `skills/work-tracker/SKILL.md` | `/work-tracker` skill — route long-form docs and maintain one canonical master tracker with a verify-first protocol |
-| `skills/minimal-code/SKILL.md` | `/minimal-code` skill — freeze a manifest, write the tests that define done, implement to green, then delete everything not required |
-| `skills/refactor/SKILL.md` | `/refactor` skill — brownfield counterpart to minimal-code: classify the task, lock current behavior with tests, execute surgically, prove behavior unchanged |
+| `skills/minimalist/SKILL.md` | `/minimalist` skill — classify the task (NEW/CHANGE/REFACTOR/MIXED), freeze a manifest, lock the definition of done (tests for new behavior, characterization tests for refactors), execute surgically, then delete everything not traceable to a passing test |
 | `hooks/work-tracker-sessionstart.sh` | SessionStart hook that auto-activates the work-tracker skill each session (wired into `~/.claude/settings.json` by `install.sh`; Claude Code only) |
 | `install.sh` | Copies files to the right location for each tool |
 
