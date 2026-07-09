@@ -46,8 +46,6 @@ That's it. One command installs every skill under `skills/` and copies `CLAUDE.m
 ./install.sh --config <dir>
 ```
 
-**Retired-skill pruning:** installing also removes skills dotai used to ship but has since retired (tracked in the `RETIRED_SKILLS` list in `install.sh`), so an upgrade never leaves orphaned `SKILL.md` files behind. Each removed skill's `SKILL.md` is backed up to a sibling `.bak` first. Pruning is scoped to that explicit list — skills dotai never installed are never touched — and runs only in skill-install mode, not `--config <dir>` project mode.
-
 ## Docs
 
 Full write-up at [mayurpise.github.io/dotai](https://mayurpise.github.io/dotai/) or in [`docs/`](docs/).
