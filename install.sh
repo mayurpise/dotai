@@ -41,7 +41,7 @@ SKILL_FILE="SKILL.md"
 # Per-tool skills install roots
 CURSOR_SKILLS_ROOT="$HOME/.cursor/skills"
 CLAUDE_SKILLS_ROOT="$HOME/.claude/skills"
-COPILOT_SKILLS_ROOT="$HOME/.github-copilot/skills"
+COPILOT_SKILLS_ROOT="$HOME/.copilot/skills"
 
 # Global config install paths
 CURSOR_CONFIG="$HOME/.cursor/rules/project.mdc"
@@ -229,7 +229,7 @@ elif [[ $(( do_cursor + do_claude + do_copilot )) -gt 0 ]]; then
 else
   [[ -d "$HOME/.cursor" ]]         && tools+=(cursor)
   [[ -d "$HOME/.claude" ]]         && tools+=(claude)
-  [[ -d "$HOME/.github-copilot" ]] && tools+=(copilot)
+  [[ -d "$HOME/.copilot" ]] && tools+=(copilot)
 fi
 
 if [[ ${#tools[@]} -eq 0 ]]; then

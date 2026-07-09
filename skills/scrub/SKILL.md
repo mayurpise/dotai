@@ -13,7 +13,7 @@ it into place:
 # Or target a specific tool
 ./install.sh --cursor     # ~/.cursor/skills/scrub/SKILL.md
 ./install.sh --claude     # ~/.claude/skills/scrub/SKILL.md
-./install.sh --copilot    # ~/.github-copilot/skills/scrub/SKILL.md
+./install.sh --copilot    # ~/.copilot/skills/scrub/SKILL.md
 ./install.sh --all        # all three
 ```
 

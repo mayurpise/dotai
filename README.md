@@ -25,7 +25,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 ./install.sh --config
 ```
 
-That's it. One command installs every skill under `skills/` and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.github-copilot/`).
+That's it. One command installs every skill under `skills/` and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.copilot/`).
 
 **Other options:**
 
