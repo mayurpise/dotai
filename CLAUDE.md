@@ -92,6 +92,8 @@ Apply when the trigger condition fires. Otherwise do not invoke.
 
 For test-backed implementation tasks, the `/minimal-code` skill runs these as an enforced sequence: freeze a manifest → write failing tests → implement to green → delete the rest.
 
+For refactors of existing code (behavior must not change), the `/refactor` skill runs the brownfield counterpart: classify the task → lock current behavior with tests → freeze a manifest → execute surgically → prove the same tests still pass. "Minimal" there means smallest diff, not least code.
+
 ### 1. Think Before Coding
 - State assumptions explicitly
 - If multiple interpretations exist, present them; do not pick silently

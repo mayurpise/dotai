@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/refactor` for behavior-preserving change, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -116,6 +116,30 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Self-critique gate** makes the model report pass/fail on four checks (every line traces to a test, every abstraction has ≥3 call sites, no speculative generality, not overcomplicated) before declaring done. An explicit checklist catches over-engineering that a vague "review your work" misses.
 
 **Relationship to /scrub** — minimal-code governs code being written; `/scrub` reviews code already written. Phase 4's deletion pass is a scrub on the model's own diff and hands off to `/scrub` for the surrounding tree. Together they bracket the authoring lifecycle: one prevents bloat, the other removes it.
+
+---
+
+## skills/refactor
+
+### Token Efficiency
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Classify-first gate (Phase 0)** | Forces pure-refactor / behavior-change / mixed up front. A mixed task gets split before any code is touched, so the model never interleaves two intents and then unwinds the tangle — the single largest source of refactor rework. |
+| **Behavior lock before editing (Phase 1)** | Existing tests or freshly written characterization tests pin current behavior once. Every later step checks against that lock instead of re-reasoning "did this change anything?" per edit. |
+| **Manifest + blast radius freeze (Phase 2)** | The changed surface and every caller are enumerated once, so the model cannot wander into unplanned files or discover callers mid-flight and restart. |
+
+### Steering Better Decisions
+
+**Smallest diff, not least code** is the inverted objective that separates this from `/minimal-code`. A behavior-neutral extract or rename that *adds* lines is a success here; minimal-code would delete it. Stating the target explicitly stops the model from "cleaning up" during a refactor and silently changing behavior.
+
+**Tests as a lock, not a spec** — characterization tests assert what the code does *now*, bugs included, not what it should do. This is the exact inverse of test-as-spec and prevents the common failure of "improving" behavior under the banner of refactoring.
+
+**Neutrality gate (Phase 4)** — the same lock tests must pass unmodified before and after. "If you had to edit a test to make it pass, behavior changed" converts a fuzzy judgment into a hard, checkable rule.
+
+**Bug-for-bug preservation** — current quirks are preserved unless fixing the bug *is* the task, in which case the task reclassifies as a behavior change. This blocks scope creep disguised as cleanup.
+
+**Relationship to /minimal-code and /scrub** — `/minimal-code` authors new behavior (tests as spec), `/refactor` transforms existing behavior-preserving code (tests as lock), `/scrub` sweeps a directory for cleanups (findings tiered by fix risk). Three distinct entry points; each has its own definition of done.
 
 ---
 
