@@ -98,12 +98,13 @@ Fix changes a public contract, output, or signature. Callers may need updates. B
 
 **Action:** do **not** apply silently. List all Tier 3 findings together, show the proposed diff shape, and ask the user: *"Apply these N Tier 3 changes? [y / pick / skip]"*
 
-### The three valid skip categories
+### The four valid skip categories
 
 A finding may be skipped **only** when one of these is true:
 - **(a) Output would change.** Existing utility does not produce identical output for the input domain. Cite the divergent case.
 - **(b) Broke a test.** Applied, tests failed, auto-reverted. Cite the test name.
 - **(c) Contradicts a project rule.** CLAUDE.md / project docs explicitly forbid the pattern. Cite the rule.
+- **(d) Unlocked.** A Tier 2/3 finding whose changed surface has no covering test, and none can be cheaply added. Behavior preservation cannot be proven, so it is not applied on typecheck alone. Cite the untested surface. (Tier 1 is exempt — a mechanical swap is output-preserving by definition.)
 
 "Mechanical churn," "out of scope," "cosmetic," "low impact," and "not worth it" are **not** skip categories.
 
@@ -129,6 +130,7 @@ Each file's fixes commit independently with a conventional message (`refactor(sc
 
 ### Gates
 
+- Before applying any Tier 2/3 finding: confirm a test covers the changed surface. If none exists and one cannot be cheaply added, skip as `(d)` — do not apply a structural or semantic change on typecheck alone.
 - After Tier 1: `tsc --noEmit` (or language equivalent) must pass.
 - After each Tier 2 file: typecheck + scoped tests must pass. On failure: revert the file, classify `(b)`.
 - After Tier 3: full project test suite must pass before handing back.
@@ -147,7 +149,7 @@ Conclude with a structured report in this exact shape:
 
 ### Skipped
 <one line per skipped finding>
-- <file>:<line> — <category (a|b|c)> — <one-sentence evidence>
+- <file>:<line> — <category (a|b|c|d)> — <one-sentence evidence>
 
 ### Pending confirmation (Tier 3)
 <list if user declined or postponed>

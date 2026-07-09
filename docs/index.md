@@ -65,7 +65,7 @@ Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the 
 
 Without this, models either over-apply (making risky changes autonomously) or under-apply (flagging everything as "needs review"). The tiers give precise autonomy boundaries.
 
-**Skip category constraints** are unusually strong: only three valid reasons to skip a finding (output would change, test broke, project rule forbids it). "Low impact," "cosmetic," and "not worth it" are explicitly invalid. This prevents the model's natural conservatism — LLMs frequently self-censor findings they judge as minor, creating silent gaps in the audit. The constraint forces completeness.
+**Skip category constraints** are unusually strong: only four valid reasons to skip a finding (output would change, test broke, project rule forbids it, or the changed Tier 2/3 surface is untested and can't be locked). "Low impact," "cosmetic," and "not worth it" are explicitly invalid. This prevents the model's natural conservatism — LLMs frequently self-censor findings they judge as minor, creating silent gaps in the audit. The constraint forces completeness.
 
 **"Skipping is the exception, not the default"** in the opening line sets the execution posture before the model reads any rules. Framing bias is real: a prompt that opens with "be thorough" produces more findings than one that opens with "be careful." This phrasing front-loads the aggressive posture.
 
