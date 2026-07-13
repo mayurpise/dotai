@@ -87,6 +87,8 @@ remove it. Deleting must break no test. Present the justification list with the 
 If any fails, revise before presenting. Do not present failing work with caveats.
 
 ## Standards (all types, non-negotiable)
+- Docstrings/comments (Python): comment the WHY not the WHAT — follow the
+  `lean-python-docs` skill. Write no doc line a code-literate reader would already know.
 - pytest: one behavior per test, arrange-act-assert, no logic in tests, fixtures over
   setup duplication, parametrize over copy-paste, assert on behavior not implementation
 - Type hints on all signatures; passes `mypy --strict`

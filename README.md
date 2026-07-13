@@ -15,6 +15,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 | `skills/skill-review/SKILL.md` | `/skill-review` skill — audit SKILL.md files with Tessl, then triage suggestions before applying |
 | `skills/work-tracker/SKILL.md` | `/work-tracker` skill — route long-form docs and maintain one canonical master tracker with a verify-first protocol |
 | `skills/minimalist/SKILL.md` | `/minimalist` skill — classify the task (NEW/CHANGE/REFACTOR/MIXED), freeze a manifest, lock the definition of done (tests for new behavior, characterization tests for refactors), execute surgically, then delete everything not traceable to a passing test |
+| `skills/lean-python-docs/SKILL.md` | `/lean-python-docs` skill — documentation discipline for Python: keep public-API summaries, the WHY behind non-obvious code, invariants, and refs; cut docstrings that restate the signature and comments that narrate the next line |
 | `hooks/work-tracker-sessionstart.sh` | SessionStart hook that auto-activates the work-tracker skill each session (wired into `~/.claude/settings.json` by `install.sh`; Claude Code only) |
 | `install.sh` | Copies files to the right location for each tool |
 

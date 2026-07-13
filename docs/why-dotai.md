@@ -1,6 +1,6 @@
 # Why dotai: Benefits of CLAUDE.md and the dotai skills
 
-Two levers that shape LLM behavior: **CLAUDE.md** controls _how_ the model responds in every session; the skills under `skills/` control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Two levers that shape LLM behavior: **CLAUDE.md** controls _how_ the model responds in every session; the skills under `skills/` control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ---
 
@@ -105,6 +105,28 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Self-critique gate (§6)** makes the model report pass/fail on an explicit checklist (every line traces to a test, every abstraction has ≥3 call sites, no speculative generality, no unrelated edits, lock tests unchanged for refactors) before declaring done. An explicit checklist catches over-engineering that a vague "review your work" misses.
 
 **Relationship to /scrub** — minimalist governs code being written or restructured; `/scrub` reviews code already written across a directory. The §5 deletion pass is a scrub on the model's own diff and hands off to `/scrub` for the surrounding tree.
+
+---
+
+## skills/lean-python-docs
+
+### Token Efficiency
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Pre-write filter, not a cleanup pass** | The WHY-not-WHAT test is applied *as* each doc line is typed, so redundant docstrings and narrating comments are never generated — cheaper than writing them and stripping them later. |
+| **One-line docstring default** | Public surfaces get a single summary line; a body is added only when a caller would otherwise get it wrong. Caps the largest source of doc bloat — multi-paragraph essays on trivial helpers. |
+| **Explicit CUT list** | Names the exact AI over-productions to suppress: signature-restating docstrings, boilerplate `Args/Returns/Raises`, section-header comments, changelog comments. Every suppressed block is context no future session has to load. |
+
+### Steering Better Decisions
+
+**Comment the WHY, never the WHAT** — the governing rule. Documentation earns its place only by carrying what the code cannot: intent, constraints, rationale, external references. A doc line that restates the code is deleted. This inverts the model's trained bias toward exhaustive docstrings.
+
+**Rename over comment** — `d` → `elapsed_seconds` instead of `# d is elapsed seconds`. A clearer name is self-maintaining; a comment drifts. The skill routes the model to the name first.
+
+**Respect project overrides** — where a project mandates docstrings on a surface (or marks domain notes as intentional), the one-line docstring is trimmed lean, never removed. The discipline cuts *redundancy*, never *required* documentation, so it composes with stricter house rules instead of fighting them.
+
+**Relationship to /minimalist** — minimalist governs the *diff*; lean-python-docs governs the *prose inside it*. minimalist's Standards defer to this skill for every Python docstring and comment, so a minimal-change task inherits doc discipline without duplicating the rules.
 
 ---
 
