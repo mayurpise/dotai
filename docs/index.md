@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -143,6 +143,32 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Respect project overrides** — where a project mandates docstrings on a surface (or marks domain notes as intentional), the one-line docstring is trimmed lean, never removed. The discipline cuts *redundancy*, never *required* documentation, so it composes with stricter house rules instead of fighting them.
 
 **Relationship to /minimalist** — minimalist governs the *diff*; lean-python-docs governs the *prose inside it*. minimalist's Standards defer to this skill for every Python docstring and comment, so a minimal-change task inherits doc discipline without duplicating the rules.
+
+---
+
+## skills/work-tracker
+
+### Token Efficiency
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Tracker floor (~5 items)** | Work below that threshold, or inside a single session, uses the ephemeral task list and writes no file at all. Most tasks never pay the tracker's cost — the largest saving in the skill, because it applies to the common case. |
+| **Sharded index + per-work files** | `docs/tracker/INDEX.md` is a bounded rollup (~40 lines) and the only default read; individual `docs/tracker/<slug>.md` files are opened one at a time. A monolithic tracker charges a full-file read for every status flip, and grows without limit. |
+| **One item, one line, one file** | A single checkbox row carries ID, priority, blocker, and source link. The predecessor restated each item four times — rollup dashboard, backlog table, per-workstream detail, source-document map — so every edit cost 4x and invited the four copies to disagree. |
+| **Edit rows, never rewrite files** | `grep -n` locates a row; a single-line edit flips it. Combined with recomputing only the touched tracker's rollup, a status change costs a few lines instead of two full documents. |
+| **Git history is the audit log** | Evidence (SHA/PR) lives inline on the DONE row; there is no separate reconciliation log duplicating what `git log` already stores. |
+
+### Steering Better Decisions
+
+**Verify-first protocol** is the reason the skill exists. Before any backlog item, four steps gate the first line of code: re-read the row and its source doc, verify the gap still exists on main (`git log` plus a grep for the named symbol), confirm it is still required, then flip shipped or obsolete rows with evidence. Stale status is not a cosmetic problem — it causes an agent to re-implement work that already shipped, which is expensive in tokens and worse in review time. The four steps are embedded verbatim in every tracker so future sessions inherit the gate.
+
+**Status lives in exactly one place.** Detail belongs in source docs; status belongs in the tracker; neither duplicates the other. The moment status appears in two files they drift, and a reader cannot tell which is current. Retiring a superseded doc repoints its inbound references first, so nothing dangles.
+
+**Binary status by default** — done or not-done, with richer states added only when a project genuinely needs them. An eight-state taxonomy invites debate over which state a row is in, which is deliberation the model pays for and the reader ignores.
+
+**Progress bars live only in the index.** Per-file bars go stale on every edit and force a rewrite to correct — putting them in one place means a status flip touches one line, not two documents.
+
+**Relationship to the native task list** — Claude Code's task tools are ephemeral working memory scoped to one session; the tracker is durable committed state. A tracker row expands into the task list at pick-up and collapses back to a checkbox plus a SHA at completion. The two layers only both exist when work actually outlives the session, which is what the tracker floor enforces.
 
 ---
 
