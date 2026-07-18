@@ -154,9 +154,9 @@ Without this, models either over-apply (making risky changes autonomously) or un
 |-----------|-------------------|
 | **Tracker floor (~5 items)** | Work below that threshold, or inside a single session, uses the ephemeral task list and writes no file at all. Most tasks never pay the tracker's cost — the largest saving in the skill, because it applies to the common case. |
 | **Sharded index + per-work files** | `docs/tracker/INDEX.md` is a bounded rollup (~40 lines) and the only default read; individual `docs/tracker/<slug>.md` files are opened one at a time. A monolithic tracker charges a full-file read for every status flip, and grows without limit. |
-| **One item, one line, one file** | A single checkbox row carries ID, priority, blocker, and source link. The predecessor restated each item four times — rollup dashboard, backlog table, per-workstream detail, source-document map — so every edit cost 4x and invited the four copies to disagree. |
+| **One item, one line, one file** | A single checkbox row carries ID, priority, blocker, and source link — there is no second view of the same item. Trackers that repeat an item across a dashboard, a backlog table, and a detail section charge for every copy on each edit, and the copies drift out of agreement. |
 | **Edit rows, never rewrite files** | `grep -n` locates a row; a single-line edit flips it. Combined with recomputing only the touched tracker's rollup, a status change costs a few lines instead of two full documents. |
-| **Git history is the audit log** | Evidence (SHA/PR) lives inline on the DONE row; there is no separate reconciliation log duplicating what `git log` already stores. |
+| **Git history is the audit log** | Evidence (SHA/PR) lives inline on the DONE row. No changelog or status-history section is kept, because `git log` already stores it. |
 
 ### Steering Better Decisions
 

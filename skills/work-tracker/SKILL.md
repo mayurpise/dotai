@@ -91,7 +91,7 @@ Multi-step items nest; parent stays `- [ ]` until every child is checked:
 
 `- [x]` = done. `- [ ]` = everything else. In-progress is marked by partially-checked subtasks or a `wip` tag — not a taxonomy. `won't-do` rows are struck and excluded from counts.
 
-Richer states (`GAP`, `DESIGN-ONLY`, `SIGN-OFF`) only when the project actually needs them; default to done/not-done.
+Do not add further states. A row is done or it is not; anything else is deliberation the reader ignores.
 
 ### Progress
 
@@ -123,7 +123,7 @@ Embed these four lines verbatim at the top of each tracker.
 
 ### Maintenance
 
-- Evidence goes inline on the DONE row. **No reconciliation log** — git history is the log.
+- Evidence goes inline on the DONE row. **Never add a changelog or status-history section** — git history is the log.
 - Retiring a superseded doc: repoint inbound references to the tracker **first**, then delete.
 - Detail stays in source docs; status stays in the tracker. Never both.
 
@@ -158,8 +158,7 @@ Embed these four lines verbatim at the top of each tracker.
 1. Routing-only? → Part A destination → write file → 3-5 bullets + path → register in docs index.
 2. <5 items / single session? → in-session task list, no tracker file. Stop.
 3. Read docs/tracker/INDEX.md. Pick the matching tracker; absent → scaffold one from the template
-   and add its INDEX row. Legacy docs/WORK_TRACKER.md → split by workstream into docs/tracker/,
-   leave a one-line pointer at the old path.
+   and add its INDEX row.
 4. Open that ONE tracker. Run verify-first on the item. Gap closed → Edit the row to [x] + evidence.
 5. Execute. Expand multi-step items into the in-session task list; collapse back to checkboxes at the end.
 6. Edit the touched rows; recompute that tracker's INDEX row + the overall bar.
