@@ -1,30 +1,32 @@
 ---
 name: work-tracker
-description: "Route long-form work products into the right docs/ location and consolidate scattered status into one canonical master tracker (docs/WORK_TRACKER.md). Enforces the verify-first protocol: re-confirm a gap still exists against main before writing any code. Use when the user says 'build a work tracker', 'consolidate status', 'reconcile the docs', 'where should this go', 'track this work', 'start a backlog', '/work-tracker', or before starting any multi-item backlog."
+description: "Route long-form work products into the right docs/ location and track status in a sharded tracker (docs/tracker/INDEX.md + one file per major work). Enforces read-one-file token discipline and the verify-first protocol: re-confirm a gap still exists against main before writing any code. Use when the user says 'build a work tracker', 'consolidate status', 'reconcile the docs', 'where should this go', 'track this work', 'start a backlog', '/work-tracker', or before starting any multi-item backlog."
 ---
 
 # Work Tracker & Docs Routing
 
-One canonical tracker holds status; source docs hold detail; verify before you build. This skill enforces two habits: (1) route long-form output to a predictable place instead of dumping it in chat, and (2) keep a single source-of-truth tracker so done-vs-pending never goes stale and you never re-implement shipped work.
+Status lives in a **sharded tracker**: a thin index plus one file per major work. Detail lives in source docs. Verify a gap before building it.
+
+Sharding exists for token economy — you read the index (cheap, bounded) and open exactly the one tracker you need, never the whole backlog.
 
 ## Red Flags - STOP if you're:
 
-- About to implement a backlog item without re-verifying the gap still exists against the main branch
-- Putting status into a plan/audit/design doc instead of the tracker (status drifts the moment it lives in two places)
-- Creating a second tracker when one already exists — update the canonical one
-- Deleting a superseded doc before repointing its inbound references (you'll leave dangling links)
-- Dumping a >20-line report/plan/audit into the chat instead of a file
-- Marking a row DONE without evidence (commit SHA, merged PR, or a grep showing the symbol exists)
-- Flipping a task's status without re-checking its checkbox and recomputing the progress bars (stale bar = lie)
-- Marking a row `BLOCKED` without naming the blocking WT-ID, or starting a `BLOCKED` item before its blocker is DONE
+- Reading more than one tracker file for a single task
+- Rewriting a whole tracker file to flip one row (Edit the row instead)
+- Creating a tracker for work under ~5 items or one session — use the in-session task list
+- Restating an item in more than one place — one item, one line, one file
+- Implementing a backlog item without re-verifying the gap exists on main
+- Putting status in a plan/audit/design doc instead of the tracker
+- Marking a row DONE without evidence (SHA, PR, or grep hit)
+- Marking `blocked:` without naming the blocking ID, or starting a blocked item
 
-**One tracker is canonical. Verify the gap before coding. Status never lives in two places.**
+**One item, one line, one file. Read the index, open one tracker. Verify before coding.**
 
 ---
 
 ## Part A: Output Routing
 
-Long-form **non-code** output (reports, analyses, plans, research, audits) over ~20 lines goes to a markdown file. The chat returns a **3-5 bullet summary + the file path** — never the full document.
+Long-form **non-code** output (>~20 lines) goes to a file; chat gets a 3-5 bullet summary + the path.
 
 | Output type | Destination |
 |---|---|
@@ -32,146 +34,135 @@ Long-form **non-code** output (reports, analyses, plans, research, audits) over 
 | Research | `docs/research/` |
 | Plan | `docs/` or `draft/` |
 | Audit | `docs/audit/` |
-| Master tracker | `docs/WORK_TRACKER.md` (see Part B) |
+| Tracker index | `docs/tracker/INDEX.md` |
+| Per-work tracker | `docs/tracker/<slug>.md` |
 
-**Exempt — these stay inline, never file-routed:** code, diffs, test output, review feedback.
+**Exempt, stays inline:** code, diffs, test output, review feedback.
 
-After writing any new doc, register it in the project's docs index (the `docs/` README or index file) so it is discoverable.
+Register new docs in the project's docs index.
 
-## Part B: The Master Tracker
+## Part B: Sharded Tracker
 
-### When to build or update one
+### When a tracker is warranted
 
-Build or reconcile `docs/WORK_TRACKER.md` when **any** of these fire:
-- Status/work is scattered across multiple docs (plans, audits, designs) and done-vs-pending is unclear
-- The user asks to review, consolidate, or track work
-- You are about to start a multi-item backlog
+Create or update a tracker only when work is **≥5 items or spans sessions**. Below that, the in-session task list is the whole system — a tracker file is pure overhead.
 
-Apply on every project. If a tracker already exists, **update it** — never fork a second one.
+Beyond that threshold, build/reconcile when: status is scattered across docs, the user asks to consolidate/track, or you're starting a multi-item backlog.
 
-### Canonical structure
+### Layout
 
-The tracker is laid out top-down in this exact order:
+```
+docs/tracker/
+  INDEX.md            # rollup only — one line per tracker. The default read.
+  <slug>.md           # one major work: items + verify protocol
+  archive/<slug>.md   # finished; INDEX keeps a single line
+```
 
-1. **Overall progress bar** — a rendered bar + `done/total (N%)` at the very top, so progress is visible at a glance (see Progress rendering)
-2. **Status taxonomy** — the legend, used everywhere: `DONE` / `IN-PROGRESS` / `BLOCKED` / `PLANNED` / `GAP` / `DESIGN-ONLY` / `WON'T-DO` / `SIGN-OFF`
-3. **Workstream rollup dashboard** — one row per workstream, counts by status, **plus a per-workstream progress bar**
-4. **Prioritized tiered backlog** — risk/impact-first, each row a **checkbox** with a stable referenceable ID (e.g. `WT-012`), a `Blocked by` column (other WT-IDs), and an optional `Owner`
-5. **Per-workstream detail** — grouped **checkbox** items under each workstream
-6. **Source-document map** — which source doc each item's detail lives in
-7. **Reconciliation log** — recently-shipped items flipped to DONE with evidence
+**One tracker per major work** — a feature, a migration, an audit remediation. IDs are namespaced by tracker (`AUTH-1`, `PERF-7`), so they stay short and never collide.
 
-Status is canonical **only** in the tracker. Detail stays in source docs. Never let status leak back into source docs.
+### Size caps (enforce, don't drift)
 
-### Progress rendering
+| File | Cap | On breach |
+|---|---|---|
+| `INDEX.md` | ~40 lines | archive finished trackers |
+| `<slug>.md` | ~20 open items / ~100 lines | split into two trackers, or archive shipped items |
 
-Every task is a checkbox so progress is scannable, and every progress total rolls up into a rendered bar.
+When a tracker's items are all DONE: move it to `archive/`, collapse its INDEX row to one `done` line.
 
-- **Checkbox per task** — `- [x]` only when status is `DONE` or `SIGN-OFF` (all subtasks complete); `- [ ]` for everything else, **including `IN-PROGRESS`**. `WON'T-DO` is excluded from the count entirely (strike it: `- [x] ~~WT-009~~`).
-- **Progress bar** — 10 cells, `█` filled and `░` empty, followed by the percentage and counts. Recompute on every tracker touch.
+### Item format — one line, no duplication
 
-  ```
-  Overall: [███████░░░] 67% — 18 done · 4 in-progress / 30
-  ```
+```
+- [ ] AUTH-3 · swap token middleware · P1 · blocked:AUTH-2 · docs/auth.md
+- [x] AUTH-2 · provider config · a1b2c3d
+- [x] ~~AUTH-5~~ · superseded by OIDC default · won't-do
+```
 
-- **Percentage** = `((DONE + SIGN-OFF) + 0.5 × IN-PROGRESS) ÷ (total tasks excluding WON'T-DO)`, rounded to a whole number. **An `IN-PROGRESS` task counts as half.** `BLOCKED`, `PLANNED`, `GAP`, `DESIGN-ONLY` count as zero (still in the denominator). Filled cells = `round(percent ÷ 10)`.
-- **Per-workstream bar** — same formula, scoped to that workstream's tasks; render it in the rollup row.
-- **WIP discipline** — keep concurrent `IN-PROGRESS` small (≈3 or fewer). Many half-credit rows inflate the bar without shipping anything; finishing beats starting. Mirrors the native task convention of ~one task in progress.
+Fields, `·`-separated, all optional after the summary: priority, `blocked:<ID>`, source-doc path. A DONE row carries its evidence (SHA/PR) and drops everything else. There is **no** separate backlog table, detail section, or source-doc map — the row is the only representation.
 
-### Dependencies
+Multi-step items nest; parent stays `- [ ]` until every child is checked:
 
-A `BLOCKED` row **must** name its blocker(s) in the `Blocked by` column (e.g. `WT-002`). When the blocker reaches `DONE`, clear the column and flip the row to `PLANNED` or `IN-PROGRESS`. Never start a `BLOCKED` item — resolve the blocker first. (Native Task tools model this with `blockedBy`; the tracker mirrors it in markdown.)
+```
+- [ ] AUTH-4 · migrate auth to OIDC · P0 · docs/auth.md
+  - [x] provider config
+  - [ ] token middleware
+```
 
-### Subtasks and the in-session todo list
+### Status
 
-Three layers — keep them distinct:
+`- [x]` = done. `- [ ]` = everything else. In-progress is marked by partially-checked subtasks or a `wip` tag — not a taxonomy. `won't-do` rows are struck and excluded from counts.
 
-| Layer | Where | Lifespan | Granularity |
-|---|---|---|---|
-| Master tracker | `docs/WORK_TRACKER.md` | durable, cross-session | one row per `WT-ID` |
-| Subtask checklist | nested under the item in per-workstream detail | durable | the TODO steps of one item |
-| In-session todo list | the live Task tools (`TaskCreate`/`TaskUpdate`; `TodoWrite` is its deprecated predecessor) | ephemeral, this session only | execution scratchpad |
+Richer states (`GAP`, `DESIGN-ONLY`, `SIGN-OFF`) only when the project actually needs them; default to done/not-done.
 
-- **A multi-step item expands into a nested checklist** under its `WT-ID` in per-workstream detail. The parent stays `- [ ]` until every child is checked:
+### Progress
 
-  ```
-  - [ ] **WT-004** — migrate auth to OIDC (IN-PROGRESS); detail → docs/auth.md
-    - [x] add provider config
-    - [ ] swap token middleware
-    - [ ] cut over callback URLs
-  ```
+Bars live **only in INDEX.md**, one per tracker plus an overall. Individual trackers carry no bar — it would go stale on every edit and force a rewrite.
 
-  An item is `IN-PROGRESS` when some-but-not-all subtasks are checked, `DONE` when all are. That partial state is exactly what earns the item its half-credit in the bar.
-- **Only expand genuinely multi-step work.** A single-step item stays a tracker row and skips the in-session list entirely — expanding it is pure double-entry. Reserve the session list for items that are multi-step or span more than one session.
-- **Sync direction.** At pick-up, expand the chosen `WT-ID` into the live in-session todo list and execute against it. At completion, collapse back into the tracker: tick the subtasks/checkbox, set Status, recompute the bars, add a reconciliation row. The ephemeral list is the scratchpad; the tracker is the record — never treat the session todo list as the source of truth.
+- 10 cells, `█`/`░`, then percent and counts.
+- Percent = `(done + 0.5 × wip) ÷ (total − won't-do)`, rounded.
+- Recompute **only the touched tracker's row** and the overall line. Leave other rows untouched.
+- Keep concurrent wip ≈3 or fewer; finishing beats starting.
 
-### Verify-first protocol (mandatory, embed it in the tracker)
+### Verify-first protocol (mandatory)
 
-Before starting **any** backlog item — write **no code** until all four pass:
+Before starting any item, write **no code** until all four pass:
 
-1. **Re-read state** — the tracker row and its source doc.
-2. **Verify the gap still exists against main** — `git log` for recent related commits **and** `grep` the named symbol/file. If it already exists, the gap is closed.
-3. **Confirm it is still required** — requirements may have moved.
-4. **Flip stale rows with evidence** — already-done → `DONE` (cite SHA/PR); obsolete → `WON'T-DO` (cite why). Only then, if the gap is real, write code.
+1. **Re-read** the item row and its source doc.
+2. **Verify the gap exists on main** — `git log` for related commits **and** `grep` the named symbol. Already there → gap closed.
+3. **Confirm still required.**
+4. **Flip stale rows with evidence** — shipped → `- [x]` + SHA; obsolete → struck + `won't-do`.
 
-This protocol exists because scattered/stale status causes redundant rework on already-shipped items. Embed the four steps verbatim at the top of the backlog section so every future pass follows them.
+Embed these four lines verbatim at the top of each tracker.
 
-### Maintenance rules
+### Read discipline (the token budget)
 
-- **Reconcile against the repo's current state** on every tracker touch — flip what shipped since last time.
-- **Retiring a superseded doc:** repoint its inbound references first (source-code comments + cross-links → point them at the tracker), *then* delete. Nothing dangles.
-- Keep the tracker reconciled; keep detail in source docs. The two never duplicate status.
+- Default read is `INDEX.md` alone. Open a `<slug>.md` only when you act on it.
+- Locate a row with `grep -n '<ID>' docs/tracker/<slug>.md`, not a full Read.
+- Flip a row with `Edit` on that one line. Never rewrite the file to change status.
+- Reconcile **only the tracker you touched**. A repo-wide sweep happens on explicit request, not per task.
+- Never mirror tracker detail back into chat — report the delta (rows flipped, new percent).
 
-## Tracker template
+### Maintenance
 
-Copy this skeleton into `docs/WORK_TRACKER.md` on first build:
+- Evidence goes inline on the DONE row. **No reconciliation log** — git history is the log.
+- Retiring a superseded doc: repoint inbound references to the tracker **first**, then delete.
+- Detail stays in source docs; status stays in the tracker. Never both.
+
+## Templates
+
+`docs/tracker/INDEX.md`:
 
 ```markdown
-# Work Tracker
+# Tracker Index
 
-**Overall: [░░░░░░░░░░] 0% — 0 done · 0 in-progress / 0**
+**Overall: [░░░░░░░░░░] 0% — 0/0**
 
-> Canonical status lives here. Detail lives in the linked source docs.
-> **Verify-first (before coding any item):** 1) re-read state · 2) verify the gap
-> still exists on main (`git log` + grep the symbol) · 3) confirm still required ·
-> 4) flip done/obsolete rows to DONE/WON'T-DO with evidence. Only then write code.
-
-## Status taxonomy
-DONE · IN-PROGRESS · BLOCKED · PLANNED · GAP · DESIGN-ONLY · WON'T-DO · SIGN-OFF
-
-## Workstream rollup
-| Workstream | Progress | DONE | IN-PROGRESS | BLOCKED | PLANNED | GAP | Notes |
-|---|---|---|---|---|---|---|---|
-|  | `[░░░░░░░░░░] 0%` |  |  |  |  |  |  |
-
-## Backlog (risk/impact-first)
-| Done | ID | Item | Workstream | Status | Priority | Blocked by | Owner | Source doc |
-|---|---|---|---|---|---|---|---|---|
-| [ ] | WT-001 |  |  |  |  |  |  |  |
-
-## Per-workstream detail
-### <Workstream>
-- [ ] **WT-001** — <one line>; detail → `docs/<source>.md`
-
-## Source-document map
-| Source doc | Covers IDs |
-|---|---|
-|  |  |
-
-## Reconciliation log
-| Date | ID | Change | Evidence |
+| Tracker | Progress | Open | Note |
 |---|---|---|---|
+| [auth](auth.md) | `[░░░░░░░░░░] 0%` | 0 |  |
+```
+
+`docs/tracker/<slug>.md`:
+
+```markdown
+# <Work name>
+
+> Verify-first: 1) re-read row + source doc · 2) `git log` + grep the symbol on main ·
+> 3) confirm still required · 4) flip shipped/obsolete rows with evidence. Then code.
+
+- [ ] AUTH-1 · <one line> · P1 · `docs/<source>.md`
 ```
 
 ## Workflow
 
 ```
-1. Determine intent → routing-only, or build/reconcile the tracker?
-2. (Routing) Pick destination from Part A → write file → return 3-5 bullets + path → register in docs index.
-3. (Tracker) Locate existing docs/WORK_TRACKER.md.
-   → exists: reconcile it against the repo.  → absent: scaffold from the template.
-4. Inventory scattered status across source docs → fold into the tracker's backlog with stable IDs.
-5. Run verify-first on each open item → flip stale rows to DONE/WON'T-DO with evidence → tick checkboxes and recompute the overall + per-workstream bars.
-6. Retire superseded docs: repoint inbound references to the tracker, THEN delete.
-7. Register the tracker in the docs index. Report: counts moved, rows flipped, docs retired.
+1. Routing-only? → Part A destination → write file → 3-5 bullets + path → register in docs index.
+2. <5 items / single session? → in-session task list, no tracker file. Stop.
+3. Read docs/tracker/INDEX.md. Pick the matching tracker; absent → scaffold one from the template
+   and add its INDEX row. Legacy docs/WORK_TRACKER.md → split by workstream into docs/tracker/,
+   leave a one-line pointer at the old path.
+4. Open that ONE tracker. Run verify-first on the item. Gap closed → Edit the row to [x] + evidence.
+5. Execute. Expand multi-step items into the in-session task list; collapse back to checkboxes at the end.
+6. Edit the touched rows; recompute that tracker's INDEX row + the overall bar.
+7. All items done → move to archive/, collapse the INDEX row.
+8. Report the delta only: rows flipped, new percent.
 ```
