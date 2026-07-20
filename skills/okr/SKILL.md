@@ -1,6 +1,6 @@
 ---
-name: goal
-description: "Track objectives and their key results (OKRs) one altitude above the work tracker: a north-star objective plus measurable KRs (metric, baseline, target, current, status), each linking down to the docs/tracker/<slug>.md work that moves it. Outcomes here, outputs in the tracker. Use when the user says 'set a goal', 'define objectives', 'OKRs', 'key results', 'north star', 'what are we aiming for', 'quarterly goals', 'track progress toward', '/goal', or before starting a multi-objective planning period."
+name: okr
+description: "Track objectives and their key results (OKRs) one altitude above the work tracker: a north-star objective plus measurable KRs (metric, baseline, target, current, status), each linking down to the docs/tracker/<slug>.md work that moves it. Outcomes here, outputs in the tracker. Use when the user says 'set a goal', 'define objectives', 'OKRs', 'key results', 'north star', 'what are we aiming for', 'quarterly goals', 'track progress toward', '/okr', or before starting a multi-objective planning period."
 ---
 
 # Goals & Key Results

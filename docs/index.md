@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/goal` for objectives and key results above that status, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/okr` for objectives and key results above that status, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -172,7 +172,7 @@ Without this, models either over-apply (making risky changes autonomously) or un
 
 ---
 
-## skills/goal
+## skills/okr
 
 ### Token Efficiency
 
@@ -191,7 +191,7 @@ Without this, models either over-apply (making risky changes autonomously) or un
 
 **Attainment is mechanical; status is a judgment.** Attainment is computed from baseline, target, and current by one direction-agnostic formula, so it cannot be talked up. Status (`on-track` / `at-risk` / `off-track` / `met` / `dropped`) is a separate confidence call — a KR can sit at 90% attainment and still be `at-risk` when the last stretch is the hard part. Keeping the two distinct stops a good-looking number from hiding a stalled objective.
 
-**Relationship to /work-tracker** — the tracker owns outputs at work-item altitude; goal owns outcomes at objective altitude. A KR's Work column links down to the tracker(s) whose completion moves the metric, and creating that tracker is a `/work-tracker` handoff. The two only both exist when work is large enough to have measurable objectives above its task list.
+**Relationship to /work-tracker** — the tracker owns outputs at work-item altitude; `/okr` owns outcomes at objective altitude. A KR's Work column links down to the tracker(s) whose completion moves the metric, and creating that tracker is a `/work-tracker` handoff. The two only both exist when work is large enough to have measurable objectives above its task list.
 
 ---
 
