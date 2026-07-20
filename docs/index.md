@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/goal` for objectives and key results above that status, `/skill-review` for auditing other skills). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -169,6 +169,29 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Progress bars live only in the index.** Per-file bars go stale on every edit and force a rewrite to correct — putting them in one place means a status flip touches one line, not two documents.
 
 **Relationship to the native task list** — Claude Code's task tools are ephemeral working memory scoped to one session; the tracker is durable committed state. A tracker row expands into the task list at pick-up and collapses back to a checkbox plus a SHA at completion. The two layers only both exist when work actually outlives the session, which is what the tracker floor enforces.
+
+---
+
+## skills/goal
+
+### Token Efficiency
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Objective floor** | A goals file is written only when work spans multiple objectives across a planning period. A single feature or bug never becomes an objective — it stays a tracker row or a task-list entry, so the common case pays nothing. |
+| **One file, read whole** | Objectives are few (~5 cap) and reviewed as a set, so `docs/goals/GOALS.md` is a single bounded file rather than a shard. There is no index to keep in sync — the opposite choice from the tracker, made because the access pattern is holistic review, not one-item action. |
+| **Bars only on headers** | Attainment bars render on the overall and per-objective lines, never per KR row. Moving a metric edits one `Current` cell plus two header bars — never a full-file rewrite. |
+| **Metric, not restatement** | A KR is a single measurable row that links down to the tracker doing the work; the tasks are not copied up. Status appears once — the KR shows the metric, the tracker shows the tasks — so the two layers never drift. |
+
+### Steering Better Decisions
+
+**Outcomes here, outputs in the tracker.** The skill's reason to exist is the altitude split: a goal is a metric moving (an outcome), a tracker item is a task shipping (an output). Conflating them produces "objectives" that are really to-do lists — measured by activity instead of result. Each KR carries a metric, a baseline, a target, and a link down to the `docs/tracker/<slug>.md` that moves it, so the outcome and the work that drives it stay connected without being duplicated.
+
+**Verify-first on every metric.** A `Current` value moves only against evidence — a measurement, command output, dashboard, or SHA — never from memory or optimism. The same four-step gate the tracker applies before code, this skill applies before a number changes, because a goals file that drifts optimistic is worse than none: it reports success that did not happen.
+
+**Attainment is mechanical; status is a judgment.** Attainment is computed from baseline, target, and current by one direction-agnostic formula, so it cannot be talked up. Status (`on-track` / `at-risk` / `off-track` / `met` / `dropped`) is a separate confidence call — a KR can sit at 90% attainment and still be `at-risk` when the last stretch is the hard part. Keeping the two distinct stops a good-looking number from hiding a stalled objective.
+
+**Relationship to /work-tracker** — the tracker owns outputs at work-item altitude; goal owns outcomes at objective altitude. A KR's Work column links down to the tracker(s) whose completion moves the metric, and creating that tracker is a `/work-tracker` handoff. The two only both exist when work is large enough to have measurable objectives above its task list.
 
 ---
 
