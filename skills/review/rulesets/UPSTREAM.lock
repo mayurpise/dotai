@@ -3,9 +3,7 @@ upstream: https://github.com/alibaba/open-code-review
 license:  Apache-2.0
 ref:      main
 commit:   c60e88650af19c0500527e2fe528e31059b4b5e1
-files:
-  - LICENSE
-  - internal/config/rules/rule_docs/default.md
-  - internal/config/rules/rule_docs/python.md
-  - internal/config/rules/rule_docs/ts_js_tsx_jsx.md
-  - .claude/commands/open-code-review.md
+rules:
+  - default.md
+  - python.md
+  - ts_js_tsx_jsx.md

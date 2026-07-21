@@ -48,7 +48,7 @@ Run only the dimensions the diff warrants:
 | **Performance** | The diff adds loops over collections, DB/network calls, allocations on a hot path, or resource acquisition | `perf` |
 | **Simplification** | Only with `--simplify` | `simplify` |
 
-**Language-specific checks (optional, no dependency).** If the repo under review vendors the open-code-review rulesets — `vendor/open-code-review/internal/config/rules/rule_docs/<lang>.md` (e.g. `python.md`, `ts_js_tsx_jsx.md`) — consult the file matching a changed file's language and fold any **diff-introduced** violations into the dimensions above. If the file is absent, skip silently; never fetch it over the network. (Vendored verbatim, Apache-2.0 — see `vendor/open-code-review/`.)
+**Language-specific checks (bundled, no dependency).** This skill ships verbatim rulesets in its own `rulesets/` directory (`default.md` always; plus `python.md`, `ts_js_tsx_jsx.md`). For each changed file, consult `rulesets/default.md` and the file matching its language (Python → `python.md`; TS/JS/TSX/JSX → `ts_js_tsx_jsx.md`), and fold any **diff-introduced** violations into the dimensions above. If no ruleset matches the language, use `default.md` only. Never fetch over the network. (Mirrored from alibaba/open-code-review, Apache-2.0; provenance in `rulesets/UPSTREAM.lock`.)
 
 ## Phase 2 — Review each dimension
 

@@ -48,16 +48,17 @@ That's it. One command installs every skill under `skills/` and copies the agent
 ./install.sh --config <dir>
 ```
 
-## Upstream mirror
+## Upstream review rulesets
 
-`vendor/open-code-review/` holds verbatim, Apache-2.0 review rulesets mirrored from
-[alibaba/open-code-review](https://github.com/alibaba/open-code-review). Do not edit them —
-`scripts/sync-upstream.sh` refreshes them at a pinned commit, and a `pre-push` hook runs it
-when you push `main`, blocking the push if the mirror drifted so you commit the update first.
+`skills/review/rulesets/` holds verbatim, Apache-2.0 rulesets mirrored from
+[alibaba/open-code-review](https://github.com/alibaba/open-code-review), **bundled with the
+`review` skill** so they install alongside it. Do not edit them — `scripts/sync-upstream.sh`
+refreshes them at a pinned commit, and a `pre-push` hook runs it when you push `main`, blocking
+the push if they drifted so you commit the update first.
 
 ```bash
 git config core.hooksPath hooks   # enable the hook (one-time, per clone)
-scripts/sync-upstream.sh          # manual refresh; edit the FILES list to change what is mirrored
+scripts/sync-upstream.sh          # manual refresh; edit the RULES list to change coverage
 ```
 
 ## Docs

@@ -107,12 +107,14 @@ install_skills_to_root() {
   shopt -s nullglob
   local installed_any=0
   for skill_dir in "$SKILLS_DIR"/*/; do
-    local name src dest
-    name="$(basename "$skill_dir")"
-    src="$skill_dir$SKILL_FILE"
-    [[ -f "$src" ]] || continue
-    dest="$dest_root/$name/$SKILL_FILE"
-    install_file "$src" "$dest" "skill  $tool/$name"
+    local name; name="$(basename "$skill_dir")"
+    [[ -f "$skill_dir$SKILL_FILE" ]] || continue   # a skill dir must have SKILL.md
+    # Install every file under the skill dir (SKILL.md plus bundled resources such
+    # as review/rulesets/), preserving relative paths.
+    while IFS= read -r -d '' src; do
+      local rel="${src#"$skill_dir"}"
+      install_file "$src" "$dest_root/$name/$rel" "skill  $tool/$name/$rel"
+    done < <(find "$skill_dir" -type f -print0)
     installed_any=1
   done
   shopt -u nullglob
