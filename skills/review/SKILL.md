@@ -1,6 +1,6 @@
 ---
 name: review
-description: "Review a GitHub pull request or the local working diff for high-signal issues across six dimensions — bugs and logic, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, and type design — then independently validate every candidate finding before reporting so false positives are filtered out. Terminal report by default; posts inline PR comments only with --comment. Use when the user says 'review this', 'review my changes', 'review the PR', 'code review', 'check my diff', 'review before I commit', '/review', or before opening or merging a pull request."
+description: "Review a GitHub pull request or the local working diff for high-signal issues across eight dimensions — bugs and logic, security, performance, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, and type design — then independently validate every candidate finding before reporting so false positives are filtered out. Terminal report by default; posts inline PR comments only with --comment. Use when the user says 'review this', 'review my changes', 'review the PR', 'code review', 'check my diff', 'review before I commit', '/review', or before opening or merging a pull request."
 ---
 
 # Review: High-Signal Code Review
@@ -44,7 +44,11 @@ Run only the dimensions the diff warrants:
 | **Test coverage** | New behavior/logic was added, or test files changed | `test-gap` |
 | **Comment accuracy** | Comments, docstrings, or docs were added or modified | `comment` |
 | **Type design** | A type/interface/data model was added or materially changed | `type-design` |
+| **Security** | The diff touches input handling, auth/permissions, secrets, serialization, SQL/queries, HTML/templating, file/path ops, or crypto | `security` |
+| **Performance** | The diff adds loops over collections, DB/network calls, allocations on a hot path, or resource acquisition | `perf` |
 | **Simplification** | Only with `--simplify` | `simplify` |
+
+**Language-specific checks (optional, no dependency).** If the repo under review vendors the open-code-review rulesets — `vendor/open-code-review/internal/config/rules/rule_docs/<lang>.md` (e.g. `python.md`, `ts_js_tsx_jsx.md`) — consult the file matching a changed file's language and fold any **diff-introduced** violations into the dimensions above. If the file is absent, skip silently; never fetch it over the network. (Vendored verbatim, Apache-2.0 — see `vendor/open-code-review/`.)
 
 ## Phase 2 — Review each dimension
 
@@ -79,16 +83,22 @@ Cross-check changed comments/docstrings against the code they describe. Flag: co
 ### Type design (`type-design`)
 For new/changed types, assess whether illegal states are representable, whether invariants are enforced at construction and every mutation, and whether internals leak. Flag: anemic models, exposed mutable internals, invariants enforced only by documentation, missing constructor validation. Suggest the smallest change that closes the gap — do not propose over-engineered type gymnastics. Advisory unless a missing invariant causes a concrete `bug`.
 
+### Security (`security`)
+Flag only vulnerabilities **introduced by the diff** and provable from the changed code plus immediate context: injection (SQL/command/template), XSS or unescaped output, secrets/credentials committed or logged, missing or incorrect authorization on a changed path, unsafe deserialization, path traversal, weak or misused crypto. State the attack path — what untrusted input reaches what sink. Overlaps `bug`; prefer `security` for these vulnerability classes. Do not raise generic hardening the diff did not necessitate. Validated in Phase 3.
+
+### Performance (`perf`)
+Flag concrete regressions the diff introduces: an N+1 query, a network/DB call inside a loop, an unbounded allocation or copy on a hot path, a resource (file/connection/lock) acquired but not released. Name the cost and when it bites. Advisory; skip speculative micro-optimization and anything a profiler would be needed to prove.
+
 ### Simplification (`simplify`, `--simplify` only)
 On the changed code only, suggest behavior-preserving simplifications: reduce nesting, remove redundant abstraction, replace nested ternaries with if/else. **Never** change behavior. Advisory; prefer clarity over brevity.
 
 ## Phase 3 — Validate every candidate (the gate)
 
-This is what makes the report trustworthy. For **each** `bug`, `silent-failure`, and `claude-md` candidate, run an independent check whose sole job is to confirm the issue is real:
-- **`bug` / `silent-failure`:** verify against the actual code (read beyond the diff if needed) that the failure genuinely occurs. Reproduce the reasoning: given what inputs/state does it break, and to what wrong result or crash? If you cannot state a concrete failure, it does not survive.
+This is what makes the report trustworthy. For **each** `bug`, `silent-failure`, `security`, and `claude-md` candidate, run an independent check whose sole job is to confirm the issue is real:
+- **`bug` / `silent-failure` / `security`:** verify against the actual code (read beyond the diff if needed) that the failure genuinely occurs. Reproduce the reasoning: given what inputs/state does it break, and to what wrong result or crash? If you cannot state a concrete failure, it does not survive.
 - **`claude-md`:** confirm the quoted rule is in scope for this file's path and is actually violated by the changed lines.
 
-Treat validation adversarially — default to refuting. If uncertain after checking, drop it. `test-gap`, `comment`, `type-design`, and `simplify` findings skip this gate but must still be concrete and high-value.
+Treat validation adversarially — default to refuting. If uncertain after checking, drop it. `test-gap`, `comment`, `type-design`, `perf`, and `simplify` findings skip this gate but must still be concrete and high-value.
 
 ## Phase 4 — Filter to high signal
 
@@ -97,7 +107,7 @@ Keep a finding only if it is **validated (Phase 3, where applicable) and confide
 - Code that looks like a bug but is correct.
 - Pedantic nitpicks a senior engineer would not raise.
 - Issues a linter/formatter catches (do not run the linter to verify).
-- General quality/coverage/security concerns not required by a governing `CLAUDE.md`.
+- General quality, coverage, or security-hardening concerns not tied to a diff-introduced, provable defect or a governing `CLAUDE.md` rule.
 - Rules a `CLAUDE.md` states but the code explicitly silences.
 - A missing abstraction, config option, or defensive handling the change did not need — flagging absent gold-plating contradicts the `minimalist` skill's smallest-diff discipline.
 
