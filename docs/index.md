@@ -16,7 +16,7 @@ See the [repo](https://github.com/mayurpise/dotai) for all options.
 
 ## Why dotai
 
-Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/okr` for objectives and key results above that status). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
+Why [CLAUDE.md](https://github.com/mayurpise/dotai/blob/main/CLAUDE.md) and the skills under [`skills/`](https://github.com/mayurpise/dotai/tree/main/skills): two levers that shape LLM behavior. **CLAUDE.md** controls _how_ the model responds in every session; the skills control _what_ it does in specific high-risk workflows (`/scrub` for code cleanup, `/review` for high-signal review of a PR or diff, `/minimalist` for writing and restructuring code with a minimal diff, `/lean-python-docs` for keeping Python documentation lean, `/work-tracker` for durable cross-session status, `/okr` for objectives and key results above that status). Together they reduce wasted tokens, prevent scope creep, and make outputs reliably actionable.
 
 ### CLAUDE.md
 
@@ -72,6 +72,30 @@ Without this, models either over-apply (making risky changes autonomously) or un
 **Per-file commits** reduce the blast radius of any single bad application. One file = one revertable unit. Without this instruction, models batch changes across files into one commit, making targeted rollbacks impossible.
 
 **Gates between tiers** (typecheck after T1, typecheck + tests after each T2 file) create mandatory feedback loops. Without gates, errors in early files compound silently into later files, and the final state is broken in ways the model can't attribute to a specific change.
+
+---
+
+### skills/review
+
+**Token Efficiency**
+
+| Mechanism | How it saves tokens |
+|-----------|-------------------|
+| **Diff-scoped, dimension-gated** | Reviews only changed code, and each of the six dimensions runs only when the diff warrants it (silent-failure pass only if error handling changed, type-design only if a type changed). Unwarranted passes are never spent. |
+| **Validate-then-filter before output** | Candidate bugs are re-checked and everything under 80 confidence is dropped *before* the report is written, so tokens aren't spent describing findings that won't survive. |
+| **One structured report shape** | Fixed Critical / Important / Suggestions / Strengths schema prevents format improvisation across runs and keeps the output parseable. |
+
+**Steering Better Decisions**
+
+**Two disciplines merged.** Broad coverage (six dimensions catch whole classes of defect — bugs, CLAUDE.md compliance, silent failures, test gaps, comment rot, weak type invariants) is paired with a strict validation gate. Coverage without the gate is noisy; the gate without coverage is narrow. Together they produce a report that is both wide and trustworthy.
+
+**Adversarial validation as the trust mechanism.** Every bug, silent-failure, and CLAUDE.md candidate is re-checked with a refute-by-default pass that must state a concrete failure (which inputs → what wrong result) before the finding survives. This directly targets the plausible-but-wrong finding that erodes reviewer trust — the failure mode that makes teams ignore automated review.
+
+**Confidence banding with an 80 gate** converts the model's natural tendency to surface everything into a ranked, filtered list. Below 80 is discarded; 80–89 is Important; 90–100 is Critical. The explicit false-positive list (pre-existing issues, linter-catchable nits, correct-but-suspicious code) names the exact categories to suppress.
+
+**Path-scoped CLAUDE.md compliance** flags a violation only when the rule governs the changed file's path and can be quoted verbatim — preventing the common error of applying a rule out of its scope.
+
+**Report-by-default, post-on-request** separates seeing findings from publishing them: terminal output always; inline PR comments only in PR mode with `--comment`. Outward-facing writes never happen implicitly.
 
 ---
 

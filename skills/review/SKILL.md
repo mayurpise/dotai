@@ -1,0 +1,137 @@
+---
+name: review
+description: "Review a GitHub pull request or the local working diff for high-signal issues across six dimensions — bugs and logic, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, and type design — then independently validate every candidate finding before reporting so false positives are filtered out. Terminal report by default; posts inline PR comments only with --comment. Use when the user says 'review this', 'review my changes', 'review the PR', 'code review', 'check my diff', 'review before I commit', '/review', or before opening or merging a pull request."
+---
+
+# Review: High-Signal Code Review
+
+Review changed code and report **only issues that survive validation**. Two disciplines, merged: broad multi-dimension coverage (catch whole classes of defect), and a strict validate-then-filter gate (every candidate is re-checked against the real code before it reaches the report). A false positive erodes trust and wastes reviewer time — quality over quantity, always.
+
+## Operating assumptions
+
+- Every tool call has a clear purpose. Do not make exploratory or test calls.
+- Review only **changed** code — the diff and its immediate context. Do not audit the whole codebase or flag pre-existing issues the change did not introduce.
+- **Execution model:** if your tool can launch parallel subagents (e.g. Claude Code's Agent/Task tool), dispatch the change summary and each applicable dimension in Phase 2 as parallel agents, and validate findings in parallel in Phase 3. If not, perform each pass yourself in sequence. The phases and gates below are identical either way.
+
+## Invocation
+
+| Command | Behavior |
+|---------|----------|
+| `/review` | Review the local working diff (staged + unstaged + untracked). If the diff is empty, review the last commit; if that is ambiguous, ask. |
+| `/review <PR>` | PR mode. Review the given GitHub PR (number or URL) via `gh`. |
+| `/review <path>` | Restrict the review to a file or directory within the working diff. |
+| `/review --comment` | PR mode only. Post findings as inline PR comments (default is terminal-only). |
+| `/review --simplify` | Also run the simplification pass (advisory; off by default). |
+
+## Phase 0 — Scope and skip check
+
+1. **Resolve the target.** A PR number/URL → **PR mode** (`gh pr view`, `gh pr diff`). Otherwise → **local mode** (`git diff` for unstaged, `git diff --staged`, and untracked files). A path argument narrows either mode to that subtree.
+2. **Skip conditions (PR mode).** Stop and report the reason without reviewing if the PR is closed, is a draft, is trivial/automated (e.g. dependency bump, generated lockfile), or you have already left a review on it (`gh pr view <PR> --comments`). Still review PRs authored by an AI.
+3. **Skip conditions (local mode).** If the diff is empty, say so and stop.
+4. **Gather guideline files.** Collect paths (not contents yet) of every relevant `CLAUDE.md`: the repo root one, plus any in a directory containing a changed file. A `CLAUDE.md` governs a changed file **only** if it shares that file's path or a parent of it.
+5. **Summarize the change.** Produce a short summary of what changed and the author's intent (PR title/description in PR mode; commit messages or the diff itself in local mode). Pass this summary to every downstream pass — intent context prevents false positives.
+
+## Phase 1 — Select applicable dimensions
+
+Run only the dimensions the diff warrants:
+
+| Dimension | Run when | Category label |
+|-----------|----------|----------------|
+| **Bugs & logic** | Always | `bug` |
+| **CLAUDE.md compliance** | A governing `CLAUDE.md` exists | `claude-md` |
+| **Silent failures** | Error handling, catch/except blocks, fallbacks, or optional-chaining were added or changed | `silent-failure` |
+| **Test coverage** | New behavior/logic was added, or test files changed | `test-gap` |
+| **Comment accuracy** | Comments, docstrings, or docs were added or modified | `comment` |
+| **Type design** | A type/interface/data model was added or materially changed | `type-design` |
+| **Simplification** | Only with `--simplify` | `simplify` |
+
+## Phase 2 — Review each dimension
+
+Each pass returns candidate findings. Every finding carries: category label, file and line, a one-line description, the concrete reason it was flagged, and a **confidence score 0–100** (below). Give each pass the change summary from Phase 0.
+
+**Confidence bands** (used for gating in Phase 4):
+- **0–25** likely false positive or pre-existing → discard
+- **26–50** minor nitpick not rooted in a rule → discard
+- **51–75** valid but low impact → discard unless it is a `claude-md` violation you can quote verbatim
+- **76–89** important, real → **Important**
+- **90–100** critical bug or explicit rule violation → **Critical**
+
+### Bugs & logic (`bug`)
+Flag only defects provable from the changed code plus its immediate context. Highest value:
+- Will not compile/parse: syntax/type errors, missing imports, unresolved references.
+- Wrong regardless of input: clear logic errors, inverted conditions, off-by-one, wrong operator.
+- Null/undefined mishandling, race conditions, resource leaks, obvious security holes (injection, unsafe deserialization, secret exposure) **introduced by the diff**.
+Do not flag anything you cannot confirm without reading far outside the diff — defer it to validation instead of dropping context-dependent guesses into the report.
+
+### CLAUDE.md compliance (`claude-md`)
+For each changed file, read only the `CLAUDE.md` files that govern its path (Phase 0). Flag a violation only when you can **quote the exact rule** being broken and the violation is unambiguous. Ignore rules scoped to other paths, and rules the code explicitly silences (e.g. an inline lint-ignore).
+
+### Silent failures (`silent-failure`)
+Audit changed error handling. Flag: empty catch blocks; catch blocks that only log and continue when they should propagate; broad catches that swallow unrelated errors; fallback to defaults/null/mock behavior on error without logging or user feedback; retries that exhaust silently; optional chaining that skips an operation that should fail loudly. For each, name the specific errors the handler could hide and the user/debugging impact.
+
+### Test coverage (`test-gap`)
+Assess **behavioral** coverage of the new logic, not line coverage. Flag untested critical paths, missing negative/boundary cases, and uncovered error branches. Rate criticality 1–10; report only 8–10 as Important-tier gaps, 5–7 as suggestions. Skip trivial getters/setters. Note tests coupled to implementation rather than behavior. Do not demand 100% coverage.
+
+### Comment accuracy (`comment`)
+Cross-check changed comments/docstrings against the code they describe. Flag: comments that are factually wrong or now stale, signatures that disagree with documented params/returns, and comments that restate obvious code (recommend removal). Prefer WHY over WHAT. Advisory only.
+
+### Type design (`type-design`)
+For new/changed types, assess whether illegal states are representable, whether invariants are enforced at construction and every mutation, and whether internals leak. Flag: anemic models, exposed mutable internals, invariants enforced only by documentation, missing constructor validation. Suggest the smallest change that closes the gap — do not propose over-engineered type gymnastics. Advisory unless a missing invariant causes a concrete `bug`.
+
+### Simplification (`simplify`, `--simplify` only)
+On the changed code only, suggest behavior-preserving simplifications: reduce nesting, remove redundant abstraction, replace nested ternaries with if/else. **Never** change behavior. Advisory; prefer clarity over brevity.
+
+## Phase 3 — Validate every candidate (the gate)
+
+This is what makes the report trustworthy. For **each** `bug`, `silent-failure`, and `claude-md` candidate, run an independent check whose sole job is to confirm the issue is real:
+- **`bug` / `silent-failure`:** verify against the actual code (read beyond the diff if needed) that the failure genuinely occurs. Reproduce the reasoning: given what inputs/state does it break, and to what wrong result or crash? If you cannot state a concrete failure, it does not survive.
+- **`claude-md`:** confirm the quoted rule is in scope for this file's path and is actually violated by the changed lines.
+
+Treat validation adversarially — default to refuting. If uncertain after checking, drop it. `test-gap`, `comment`, `type-design`, and `simplify` findings skip this gate but must still be concrete and high-value.
+
+## Phase 4 — Filter to high signal
+
+Keep a finding only if it is **validated (Phase 3, where applicable) and confidence ≥ 80**. Then drop anything matching this false-positive list — never flag:
+- Pre-existing issues the change did not introduce.
+- Code that looks like a bug but is correct.
+- Pedantic nitpicks a senior engineer would not raise.
+- Issues a linter/formatter catches (do not run the linter to verify).
+- General quality/coverage/security concerns not required by a governing `CLAUDE.md`.
+- Rules a `CLAUDE.md` states but the code explicitly silences.
+
+## Phase 5 — Report (terminal)
+
+Always output to the terminal in this shape. If nothing survived, say so plainly.
+
+```
+## Review — <PR #N | local working diff>
+
+<one-line summary of what changed>
+
+### Critical (N)
+- [<category>] <file>:<line> — <issue>. <why it fails: inputs → wrong result>.
+
+### Important (N)
+- [<category>] <file>:<line> — <issue>. <concrete impact>.
+
+### Suggestions (N)
+- [<category>] <file>:<line> — <suggestion>.
+
+### Strengths
+- <what the change does well>
+```
+
+If no issues survived: `No issues found. Checked bugs, CLAUDE.md compliance, and the applicable dimensions.`
+
+In **local mode**, stop here — never post anywhere. In **PR mode without `--comment`**, stop here. Continue to Phase 6 only in PR mode with `--comment`.
+
+## Phase 6 — Post inline PR comments (`--comment`, PR mode only)
+
+1. If no issues survived, post one summary comment via `gh pr comment`:
+   > ## Code review
+   > No issues found. Checked bugs, CLAUDE.md compliance, and the applicable dimensions.
+2. Otherwise post **one comment per unique issue** with the host's inline-comment tool (e.g. `mcp__github_inline_comment__create_inline_comment`; else `gh pr comment` referencing the location). Never duplicate a comment.
+   - Small, self-contained fix → include a committable suggestion block, but **only** if committing it fully resolves the issue.
+   - Larger or multi-site fix → describe the problem and the fix without a suggestion block.
+   - Cite each governing `CLAUDE.md` with a link.
+   - Link code with the exact permalink format (renders in Markdown): `https://github.com/<owner>/<repo>/blob/<full-sha>/<path>#L<start>-L<end>` — full SHA (not `$(git rev-parse HEAD)`), correct repo, `#L` notation, at least one line of context on each side.
