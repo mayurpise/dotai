@@ -10,7 +10,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 
 | File | Purpose |
 |------|---------|
-| `CLAUDE.md` | Project-level agent operating instructions |
+| `AGENTS.md` | Project-level agent operating instructions — single source of truth (`CLAUDE.md` is a symlink to it) |
 | `skills/scrub/SKILL.md` | `/scrub` skill — tiered code review that applies fixes within a behavior-preserving safety envelope; skips changes it can't lock with a test |
 | `skills/review/SKILL.md` | `/review` skill — high-signal review of a PR or local diff across six dimensions (bugs, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, type design); validates every candidate before reporting so false positives are filtered out |
 | `skills/work-tracker/SKILL.md` | `/work-tracker` skill — route long-form docs and maintain a sharded tracker (`docs/tracker/INDEX.md` + one file per major work) with a verify-first protocol and read-one-file token discipline |
@@ -27,7 +27,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 ./install.sh --config
 ```
 
-That's it. One command installs every skill under `skills/` and copies `CLAUDE.md` to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.copilot/`).
+That's it. One command installs every skill under `skills/` and copies the agent instructions (`AGENTS.md`) to the global config dir of every tool it detects (`~/.claude/`, `~/.cursor/`, `~/.copilot/`).
 
 **Other options:**
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Installs the dotai skills and/or project config files for supported AI coding tools.
-# CLAUDE.md is the single source of truth; config files are generated at install time.
+# AGENTS.md is the single source of truth; per-tool config files (CLAUDE.md, Cursor,
+# Copilot) are generated at install time.
 # Skills live under skills/<name>/SKILL.md and are installed to each tool's skills dir.
 #
 # Usage:
@@ -35,7 +36,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$SCRIPT_DIR/skills"
-CLAUDE_SRC="$SCRIPT_DIR/CLAUDE.md"
+AGENTS_SRC="$SCRIPT_DIR/AGENTS.md"
 SKILL_FILE="SKILL.md"
 
 # Per-tool skills install roots
@@ -96,7 +97,7 @@ install_file() {
 install_cursor_config() {
   local dest="$1" backup="${2:-}"
   local tmp; tmp="$(mktemp)"
-  { printf -- "$CURSOR_FRONTMATTER"; cat "$CLAUDE_SRC"; } > "$tmp"
+  { printf -- "$CURSOR_FRONTMATTER"; cat "$AGENTS_SRC"; } > "$tmp"
   install_file "$tmp" "$dest" "config Cursor" "$backup"
   rm -f "$tmp"
 }
@@ -165,7 +166,7 @@ install_claude_hook() {
 # Install config to each targeted tool's global home dir.
 install_config_global() {
   if has claude "$@"; then
-    install_file "$CLAUDE_SRC" "$CLAUDE_CONFIG" "config Claude Code"
+    install_file "$AGENTS_SRC" "$CLAUDE_CONFIG" "config Claude Code"
   fi
   if has cursor "$@"; then
     install_cursor_config "$CURSOR_CONFIG"
@@ -180,14 +181,14 @@ install_config_project() {
   local dir="$1"; shift
   mkdir -p "$dir"
   if has claude "$@"; then
-    install_file "$CLAUDE_SRC" "$dir/CLAUDE.md"  "config Claude Code" backup
-    install_file "$CLAUDE_SRC" "$dir/AGENTS.md" "config AGENTS.md" backup
+    install_file "$AGENTS_SRC" "$dir/CLAUDE.md"  "config Claude Code" backup
+    install_file "$AGENTS_SRC" "$dir/AGENTS.md" "config AGENTS.md" backup
   fi
   if has cursor "$@"; then
     install_cursor_config "$dir/.cursor/rules/project.mdc" backup
   fi
   if has copilot "$@"; then
-    install_file "$CLAUDE_SRC" "$dir/.github/copilot-instructions.md" "config Copilot" backup
+    install_file "$AGENTS_SRC" "$dir/.github/copilot-instructions.md" "config Copilot" backup
   fi
 }
 
