@@ -11,6 +11,7 @@ Review changed code and report **only issues that survive validation**. Two disc
 
 - Every tool call has a clear purpose. Do not make exploratory or test calls.
 - Review only **changed** code — the diff and its immediate context. Do not audit the whole codebase or flag pre-existing issues the change did not introduce.
+- **Fixes follow the smallest diff.** Every fix or suggestion you propose must itself obey the `minimalist` skill: the smallest change that resolves the issue, with no new abstraction, configuration, or defensive code the fix does not require.
 - **Execution model:** if your tool can launch parallel subagents (e.g. Claude Code's Agent/Task tool), dispatch the change summary and each applicable dimension in Phase 2 as parallel agents, and validate findings in parallel in Phase 3. If not, perform each pass yourself in sequence. The phases and gates below are identical either way.
 
 ## Invocation
@@ -98,6 +99,7 @@ Keep a finding only if it is **validated (Phase 3, where applicable) and confide
 - Issues a linter/formatter catches (do not run the linter to verify).
 - General quality/coverage/security concerns not required by a governing `CLAUDE.md`.
 - Rules a `CLAUDE.md` states but the code explicitly silences.
+- A missing abstraction, config option, or defensive handling the change did not need — flagging absent gold-plating contradicts the `minimalist` skill's smallest-diff discipline.
 
 ## Phase 5 — Report (terminal)
 
