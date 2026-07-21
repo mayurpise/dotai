@@ -75,26 +75,29 @@ backup_if_exists() {
   return 0
 }
 
-# Copy src→dest idempotently: skip if identical, back up before replacing.
+# Copy src→dest idempotently: skip if identical, overwrite otherwise.
+# Repo-sourced targets (skills, hook, global config) are git-recoverable, so no
+# backup is kept. Pass a non-empty 4th arg to back up first — used only when
+# writing into a foreign project dir that may hold the user's own file.
 # Portable same-file/same-content handling via cmp (no realpath dependency).
 install_file() {
-  local src="$1" dest="$2" label="$3"
+  local src="$1" dest="$2" label="$3" backup="${4:-}"
   if cmp -s "$src" "$dest" 2>/dev/null; then
     echo "  = $label unchanged → $dest"
     return 0
   fi
   mkdir -p "$(dirname "$dest")"
-  backup_if_exists "$dest"
+  [[ -n "$backup" ]] && backup_if_exists "$dest"
   cp "$src" "$dest"
   echo "  ✓ $label → $dest"
 }
 
 # Generate the Cursor config (frontmatter + CLAUDE.md) and install it via install_file.
 install_cursor_config() {
-  local dest="$1"
+  local dest="$1" backup="${2:-}"
   local tmp; tmp="$(mktemp)"
   { printf -- "$CURSOR_FRONTMATTER"; cat "$CLAUDE_SRC"; } > "$tmp"
-  install_file "$tmp" "$dest" "config Cursor"
+  install_file "$tmp" "$dest" "config Cursor" "$backup"
   rm -f "$tmp"
 }
 
@@ -177,14 +180,14 @@ install_config_project() {
   local dir="$1"; shift
   mkdir -p "$dir"
   if has claude "$@"; then
-    install_file "$CLAUDE_SRC" "$dir/CLAUDE.md"  "config Claude Code"
-    install_file "$CLAUDE_SRC" "$dir/AGENTS.md" "config AGENTS.md"
+    install_file "$CLAUDE_SRC" "$dir/CLAUDE.md"  "config Claude Code" backup
+    install_file "$CLAUDE_SRC" "$dir/AGENTS.md" "config AGENTS.md" backup
   fi
   if has cursor "$@"; then
-    install_cursor_config "$dir/.cursor/rules/project.mdc"
+    install_cursor_config "$dir/.cursor/rules/project.mdc" backup
   fi
   if has copilot "$@"; then
-    install_file "$CLAUDE_SRC" "$dir/.github/copilot-instructions.md" "config Copilot"
+    install_file "$CLAUDE_SRC" "$dir/.github/copilot-instructions.md" "config Copilot" backup
   fi
 }
 
