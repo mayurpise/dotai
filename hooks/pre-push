@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Pre-push hook: when pushing main, refresh the upstream vendored mirror. If it
+# drifted, block the push so the update is committed first. Fails open on network
+# errors. Enable per clone with:  git config core.hooksPath hooks
+set -euo pipefail
+
+sync="$(git rev-parse --show-toplevel)/scripts/sync-upstream.sh"
+[[ -x "$sync" ]] || exit 0
+
+# pre-push receives "<localref> <localsha> <remoteref> <remotesha>" lines on stdin.
+pushes_main=0
+while read -r _lref _lsha rref _rsha; do
+  [[ "$rref" == "refs/heads/main" ]] && pushes_main=1
+done
+[[ $pushes_main -eq 1 ]] || exit 0
+
+set +e; "$sync"; code=$?; set -e
+case $code in
+  3) echo "pre-push: upstream mirror updated — commit vendor/open-code-review, then push again." >&2; exit 1 ;;
+  2) echo "pre-push: upstream sync skipped (offline/fetch error); pushing anyway." >&2; exit 0 ;;
+  *) exit 0 ;;
+esac
