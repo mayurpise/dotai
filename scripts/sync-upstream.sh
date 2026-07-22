@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Deterministic ruleset sync: mirror selected open-code-review rulesets into the
-# review skill's bundled rulesets/ dir at a pinned commit. Files there are VERBATIM
+# xreview skill's bundled rulesets/ dir at a pinned commit. Files there are VERBATIM
 # upstream mirrors — do NOT edit; re-fetching the same SHA is byte-identical. Because
-# they live under skills/review/, install.sh ships them alongside the skill.
+# they live under skills/xreview/, install.sh ships them alongside the skill.
 #
 # Usage:
 #   scripts/sync-upstream.sh          # resolve REF -> SHA, fetch, write, report
@@ -16,7 +16,7 @@ set -euo pipefail
 
 UPSTREAM="alibaba/open-code-review"
 REF="${REF:-main}"
-DEST="skills/review/rulesets"
+DEST="skills/xreview/rulesets"
 RULE_PREFIX="internal/config/rules/rule_docs"
 
 # Rulesets to mirror (basenames under $RULE_PREFIX upstream). Edit to change coverage.

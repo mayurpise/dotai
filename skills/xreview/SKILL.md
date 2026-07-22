@@ -1,9 +1,9 @@
 ---
-name: review
-description: "Review a GitHub pull request or the local working diff for high-signal issues across eight dimensions — bugs and logic, security, performance, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, and type design — then independently validate every candidate finding before reporting so false positives are filtered out. Terminal report by default; posts inline PR comments only with --comment. Use when the user says 'review this', 'review my changes', 'review the PR', 'code review', 'check my diff', 'review before I commit', '/review', or before opening or merging a pull request."
+name: xreview
+description: "Review a GitHub pull request or the local working diff for high-signal issues across eight dimensions — bugs and logic, security, performance, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, and type design — then independently validate every candidate finding before reporting so false positives are filtered out. Terminal report by default; posts inline PR comments only with --comment. Use when the user says 'review this', 'review my changes', 'review the PR', 'code review', 'check my diff', 'review before I commit', '/xreview', or before opening or merging a pull request."
 ---
 
-# Review: High-Signal Code Review
+# xreview: High-Signal Code Review
 
 Review changed code and report **only issues that survive validation**. Two disciplines, merged: broad multi-dimension coverage (catch whole classes of defect), and a strict validate-then-filter gate (every candidate is re-checked against the real code before it reaches the report). A false positive erodes trust and wastes reviewer time — quality over quantity, always.
 
@@ -18,11 +18,11 @@ Review changed code and report **only issues that survive validation**. Two disc
 
 | Command | Behavior |
 |---------|----------|
-| `/review` | Review the local working diff (staged + unstaged + untracked). If the diff is empty, review the last commit; if that is ambiguous, ask. |
-| `/review <PR>` | PR mode. Review the given GitHub PR (number or URL) via `gh`. |
-| `/review <path>` | Restrict the review to a file or directory within the working diff. |
-| `/review --comment` | PR mode only. Post findings as inline PR comments (default is terminal-only). |
-| `/review --simplify` | Also run the simplification pass (advisory; off by default). |
+| `/xreview` | Review the local working diff (staged + unstaged + untracked). If the diff is empty, review the last commit; if that is ambiguous, ask. |
+| `/xreview <PR>` | PR mode. Review the given GitHub PR (number or URL) via `gh`. |
+| `/xreview <path>` | Restrict the review to a file or directory within the working diff. |
+| `/xreview --comment` | PR mode only. Post findings as inline PR comments (default is terminal-only). |
+| `/xreview --simplify` | Also run the simplification pass (advisory; off by default). |
 
 ## Phase 0 — Scope and skip check
 

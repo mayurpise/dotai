@@ -75,7 +75,7 @@ Apply when the trigger condition fires. Otherwise do not invoke.
 
 ## Workflow Rules
 - Run full test suite after fixing bugs or implementing changes; never commit with failing tests
-- **Definition of done (code changes):** before considering a code-modifying task complete, run the review skill over the working diff (`/review` in Claude Code; the installed `review` skill otherwise) and address its findings. Best-effort guidance, not an enforced gate.
+- **Definition of done (code changes):** before considering a code-modifying task complete, run the xreview skill over the working diff (`/xreview` in Claude Code; the installed `xreview` skill otherwise) and address its findings. Best-effort guidance, not an enforced gate.
 - Commit locally after completing a task; **push only on explicit request** or verified green CI on main
 - Use conventional commit messages
 - `git status` clean before any push

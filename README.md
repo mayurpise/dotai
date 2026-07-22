@@ -12,7 +12,7 @@ AI coding tool configs that reduce wasted tokens and prevent scope creep. Works 
 |------|---------|
 | `AGENTS.md` | Project-level agent operating instructions — single source of truth (`CLAUDE.md` is a symlink to it) |
 | `skills/scrub/SKILL.md` | `/scrub` skill — tiered code review that applies fixes within a behavior-preserving safety envelope; skips changes it can't lock with a test |
-| `skills/review/SKILL.md` | `/review` skill — high-signal review of a PR or local diff across eight dimensions (bugs, security, performance, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, type design); validates every candidate before reporting so false positives are filtered out |
+| `skills/xreview/SKILL.md` | `/xreview` skill — high-signal review of a PR or local diff across eight dimensions (bugs, security, performance, CLAUDE.md compliance, silent failures, test coverage, comment accuracy, type design); validates every candidate before reporting so false positives are filtered out |
 | `skills/work-tracker/SKILL.md` | `/work-tracker` skill — route long-form docs and maintain a sharded tracker (`docs/tracker/INDEX.md` + one file per major work) with a verify-first protocol and read-one-file token discipline |
 | `skills/okr/SKILL.md` | `/okr` skill — track objectives and key results (OKRs) one altitude above the work tracker: a north-star objective plus measurable KRs, each linking down to the `docs/tracker/<slug>.md` work that moves it (outcomes here, outputs in the tracker) |
 | `skills/minimalist/SKILL.md` | `/minimalist` skill — classify the task (NEW/CHANGE/REFACTOR/MIXED), freeze a manifest, lock the definition of done (tests for new behavior, characterization tests for refactors), execute surgically, then delete everything not traceable to a passing test |
@@ -50,9 +50,9 @@ That's it. One command installs every skill under `skills/` and copies the agent
 
 ## Upstream review rulesets
 
-`skills/review/rulesets/` holds verbatim, Apache-2.0 rulesets mirrored from
+`skills/xreview/rulesets/` holds verbatim, Apache-2.0 rulesets mirrored from
 [alibaba/open-code-review](https://github.com/alibaba/open-code-review), **bundled with the
-`review` skill** so they install alongside it. Do not edit them — `scripts/sync-upstream.sh`
+`xreview` skill** so they install alongside it. Do not edit them — `scripts/sync-upstream.sh`
 refreshes them at a pinned commit, and a `pre-push` hook runs it when you push `main`, blocking
 the push if they drifted so you commit the update first.
 

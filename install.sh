@@ -110,7 +110,7 @@ install_skills_to_root() {
     local name; name="$(basename "$skill_dir")"
     [[ -f "$skill_dir$SKILL_FILE" ]] || continue   # a skill dir must have SKILL.md
     # Install every file under the skill dir (SKILL.md plus bundled resources such
-    # as review/rulesets/), preserving relative paths.
+    # as xreview/rulesets/), preserving relative paths.
     while IFS= read -r -d '' src; do
       local rel="${src#"$skill_dir"}"
       install_file "$src" "$dest_root/$name/$rel" "skill  $tool/$name/$rel"
